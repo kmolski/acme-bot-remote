@@ -23,7 +23,7 @@ const CODE_LENGTH: usize = 6;
 fn read_line() -> io::Result<String> {
     let mut buf = String::new();
     io::stdin().read_line(&mut buf)?;
-    Ok(buf.trim().to_string())
+    Ok(buf.trim().to_lowercase())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -34,17 +34,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let channel = connection.open_channel(None)?;
     let exchange = Exchange::direct(&channel);
 
-    let mut code = String::new();
+    let mut code: Option<String> = None;
 
     loop {
-        if !code.is_empty() {
-            println!("[R]esume, [P]ause, [S]top or [Q]uit?");
+        if let Some(auth_code) = &code {
+            println!("[R]esume, [P]ause, [S]top, [C]hange code or [Q]uit?");
 
             let selection = read_line()?;
             let op = match selection.as_str() {
                 "r" => MessageType::Resume,
                 "p" => MessageType::Pause,
                 "s" => MessageType::Stop,
+                "c" => {
+                    code = None;
+                    continue;
+                }
                 "q" => {
                     break;
                 }
@@ -55,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let message = Message {
                 op,
-                code: code.clone(),
+                code: auth_code.clone(),
             };
             let serialized = serde_json::to_string(&message).unwrap();
 
@@ -68,7 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 println!("Please enter a {CODE_LENGTH}-digit code!");
                 continue;
             } else {
-                code = new_code;
+                code = Some(new_code);
             }
         }
     }
