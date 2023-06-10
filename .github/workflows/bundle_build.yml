@@ -1,0 +1,43 @@
+name: Yew bundle build
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+          profile: minimal
+          components: clippy
+
+      - name: Check formatting with rustfmt
+        run: cargo fmt -- --check
+
+      - name: Run Cargo check
+        run: cargo check
+
+      - name: Lint with Clippy
+        run: cargo clippy
+
+      - name: Run tests
+        run: cargo test --verbose
+
+      - uses: jetli/trunk-action@v0.1.0
+        with:
+          version: "latest"
+
+      - name: Build Yew bundle
+        run: trunk build
