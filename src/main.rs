@@ -2,9 +2,9 @@ use yew::prelude::*;
 
 #[function_component(App)]
 pub fn app() -> Html {
-    let on_resume = |_| { };
-    let on_pause = |_| { };
-    let on_stop = |_| { };
+    let on_resume = |_| {};
+    let on_pause = |_| {};
+    let on_stop = |_| {};
 
     html! {
         <div>
