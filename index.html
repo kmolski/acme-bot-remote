@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <title>acme-bot-remote</title>
 
     <script data-trunk src="stomp.js"></script>
     <script>
-      const url = "ws://kmolski.duckdns.org:15674/ws";
+      const url = "wss://vps.kmolski.xyz:15673/ws";
       const client = Stomp.client(url);
       const destination = "/exchange/acme_bot_remote"
 
