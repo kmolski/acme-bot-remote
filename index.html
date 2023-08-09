@@ -4,13 +4,27 @@
     <meta charset="utf-8" />
     <title>acme-bot-remote</title>
 
-    <script data-trunk src="stomp.js"></script>
-    <script>
+    <script type="importmap">
+      {
+        "imports": {
+          "@stomp/stompjs": "https://ga.jspm.io/npm:@stomp/stompjs@7.0.0/esm6/index.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import { Client } from "@stomp/stompjs";
+
       const url = "wss://vps.kmolski.xyz:15673/ws";
-      const client = Stomp.client(url);
+      const client = new Client({
+        brokerURL: url,
+        connectHeaders: {
+          login: "krecik",
+          passcode: "krecik"
+        },
+      });
       const destination = "/exchange/acme_bot_remote"
 
-      client.connect("krecik", "krecik");
+      client.activate();
 
       const accessCodeInput = () => document.getElementById("accessCode");
       const createMessage = op => {
@@ -20,15 +34,15 @@
         });
       }
 
-      const onResume = () => client.send(destination, {}, createMessage("resume"));
-      const onPause = () => client.send(destination, {}, createMessage("pause"));
-      const onStop = () => client.send(destination, {}, createMessage("stop"));
+      window.onResume = () => client.publish({ destination, body: createMessage("resume") });
+      window.onPause = () => client.publish({ destination, body: createMessage("pause") });
+      window.onStop = () => client.publish({ destination, body: createMessage("stop") });
     </script>
   </head>
 
   <body>
     <label for="accessCode">Access code:</label>
-    <input id="accessCode" minlength="6" maxlength="6">
+    <input id="accessCode" type="number" minlength="6" maxlength="6" required>
 
     <button onclick="onResume()">Resume</button>
     <button onclick="onPause()">Pause</button>
