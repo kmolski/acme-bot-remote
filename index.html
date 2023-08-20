@@ -11,41 +11,5 @@
         }
       }
     </script>
-    <script type="module">
-      import { Client } from "@stomp/stompjs";
-
-      const url = "wss://vps.kmolski.xyz:15673/ws";
-      const client = new Client({
-        brokerURL: url,
-        connectHeaders: {
-          login: "krecik",
-          passcode: "krecik"
-        },
-      });
-      const destination = "/exchange/acme_bot_remote"
-
-      client.activate();
-
-      const accessCodeInput = () => document.getElementById("accessCode");
-      const createMessage = op => {
-        return JSON.stringify({
-          op: op,
-          code: accessCodeInput().value,
-        });
-      }
-
-      window.onResume = () => client.publish({ destination, body: createMessage("resume") });
-      window.onPause = () => client.publish({ destination, body: createMessage("pause") });
-      window.onStop = () => client.publish({ destination, body: createMessage("stop") });
-    </script>
   </head>
-
-  <body>
-    <label for="accessCode">Access code:</label>
-    <input id="accessCode" type="number" minlength="6" maxlength="6" required>
-
-    <button onclick="onResume()">Resume</button>
-    <button onclick="onPause()">Pause</button>
-    <button onclick="onStop()">Stop</button>
-  </body>
 </html>

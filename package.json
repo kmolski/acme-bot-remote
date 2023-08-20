@@ -1,0 +1,7 @@
+{
+  "name": "acme-bot-remote",
+  "version": "0.1.0",
+  "dependencies": {
+    "@stomp/stompjs": "^7.0.0"
+  }
+}
