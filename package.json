@@ -1,0 +1,13 @@
+{
+  "name": "acme-bot-remote",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "node esbuild.js"
+  },
+  "dependencies": {
+    "@stomp/stompjs": "^7.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.2"
+  }
+}

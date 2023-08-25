@@ -33,11 +33,11 @@ jobs:
         run: cargo clippy
 
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test
 
       - uses: jetli/trunk-action@v0.4.0
         with:
           version: "latest"
 
       - name: Build Yew bundle
-        run: trunk build
+        run: trunk build --release
