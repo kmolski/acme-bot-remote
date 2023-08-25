@@ -1,8 +1,8 @@
 mod stomp;
 
-use std::sync::Arc;
-use serde::{Deserialize, Serialize};
 use crate::stomp::{StompClient, RABBITMQ_PASS, RABBITMQ_URI, RABBITMQ_USER};
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use yew::prelude::*;
 
 const RABBITMQ_DEST: &str = "/exchange/acme_bot_remote";
@@ -18,7 +18,7 @@ enum MessageType {
 #[derive(Serialize, Deserialize)]
 struct Message {
     op: MessageType,
-    code: String
+    code: String,
 }
 
 #[function_component(App)]
@@ -27,15 +27,39 @@ pub fn app() -> Html {
     client.activate();
     let on_resume = {
         let client = client.clone();
-        move |_| { client.publish(&Message {op: MessageType::Resume, code: "100000".to_string()}, RABBITMQ_DEST) }
+        move |_| {
+            client.publish(
+                &Message {
+                    op: MessageType::Resume,
+                    code: "100000".to_string(),
+                },
+                RABBITMQ_DEST,
+            )
+        }
     };
     let on_pause = {
         let client = client.clone();
-        move |_| { client.publish(&Message {op: MessageType::Pause, code: "100000".to_string()}, RABBITMQ_DEST) }
+        move |_| {
+            client.publish(
+                &Message {
+                    op: MessageType::Pause,
+                    code: "100000".to_string(),
+                },
+                RABBITMQ_DEST,
+            )
+        }
     };
     let on_stop = {
         let client = client.clone();
-        move |_| { client.publish(&Message {op: MessageType::Stop, code: "100000".to_string()}, RABBITMQ_DEST) }
+        move |_| {
+            client.publish(
+                &Message {
+                    op: MessageType::Stop,
+                    code: "100000".to_string(),
+                },
+                RABBITMQ_DEST,
+            )
+        }
     };
 
     html! {
