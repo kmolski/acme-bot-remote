@@ -1,4 +1,4 @@
-name: Yew bundle build
+name: Leptos bundle build
 
 on:
   pull_request:
@@ -12,6 +12,9 @@ env:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v3
 
@@ -46,5 +49,16 @@ jobs:
         with:
           version: "latest"
 
-      - name: Build Yew bundle
+      - name: Create dist_js directory
+        run: mkdir dist_js
+
+      - name: Build Leptos bundle
         run: trunk build --release
+
+      - name: Upload GitHub Pages bundle
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v2
