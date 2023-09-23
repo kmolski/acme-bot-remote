@@ -9,7 +9,6 @@ use url::Url;
 
 use crate::stomp::{StompClient, StompUrl};
 
-mod remote_api;
 mod stomp;
 
 #[derive(Serialize, Deserialize)]
