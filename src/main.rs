@@ -86,7 +86,7 @@ fn App() -> impl IntoView {
     view! {
         <Router>
             <Routes>
-                <Route path="/" view=Player/>
+                <Route path="/*" view=Player/>
             </Routes>
         </Router>
     }
