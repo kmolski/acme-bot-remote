@@ -1,11 +1,16 @@
-mod stomp;
+use std::rc::Rc;
 
-use crate::stomp::{StompClient, RABBITMQ_PASS, RABBITMQ_URI, RABBITMQ_USER};
+use base64::engine;
+use base64::prelude::*;
+use leptos::*;
+use leptos_router::*;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use yew::prelude::*;
+use url::Url;
 
-const RABBITMQ_DEST: &str = "/exchange/acme_bot_remote";
+use crate::stomp::{StompClient, StompUrl};
+
+mod remote_api;
+mod stomp;
 
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -21,59 +26,73 @@ struct Message {
     code: String,
 }
 
-#[function_component(App)]
-pub fn app() -> Html {
-    let client = Arc::new(StompClient::new(RABBITMQ_URI, RABBITMQ_USER, RABBITMQ_PASS));
+#[component]
+fn Player() -> impl IntoView {
+    let query_params = use_query_map().get_untracked();
+    let access_code = Rc::new(query_params.get("ac").unwrap().to_string());
+    let remote_id = Rc::new(query_params.get("rid").unwrap().to_string());
+    let rcs_bytes = engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(query_params.get("rcs").unwrap())
+        .unwrap();
+    let remote_server = String::from_utf8(rcs_bytes).unwrap();
+
+    let mut url = Url::parse(&remote_server).unwrap();
+    let login = url.username().to_string();
+    let password = url.password().unwrap().to_string();
+    url.set_username("").unwrap();
+    url.set_password(None).unwrap();
+
+    let remote_url = StompUrl::new(url.as_str()).unwrap();
+    let client = Rc::new(StompClient::new(&remote_url, &login, &password));
     client.activate();
-    let on_resume = {
-        let client = client.clone();
-        move |_| {
-            client.publish(
-                &Message {
-                    op: MessageType::Resume,
-                    code: "100000".to_string(),
-                },
-                RABBITMQ_DEST,
-            )
-        }
-    };
-    let on_pause = {
-        let client = client.clone();
-        move |_| {
-            client.publish(
-                &Message {
-                    op: MessageType::Pause,
-                    code: "100000".to_string(),
-                },
-                RABBITMQ_DEST,
-            )
-        }
-    };
-    let on_stop = {
-        let client = client.clone();
-        move |_| {
-            client.publish(
-                &Message {
-                    op: MessageType::Stop,
-                    code: "100000".to_string(),
-                },
-                RABBITMQ_DEST,
-            )
-        }
-    };
 
-    html! {
-        <div>
-            <label for="accessCode">{ "Access code:" }</label>
-            <input id="accessCode" type="number" minlength="1" required=true/>
+    fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &StompClient) {
+        let command = Message {
+            op,
+            code: access_code.to_string(),
+        };
+        let msg = serde_json::to_string(&command).unwrap();
+        client
+            .publish(&msg, &format!("/exchange/acme_bot_remote/{}", remote_id))
+            .expect("TODO: panic message");
+    }
 
-            <button onclick={on_resume}>{ "Resume" }</button>
-            <button onclick={on_pause}>{ "Pause" }</button>
-            <button onclick={on_stop}>{ "Stop" }</button>
-        </div>
+    view! {
+        <button on:click={
+            let access_code = access_code.clone();
+            let remote_id = remote_id.clone();
+            let client = client.clone();
+            move |_| { publish(MessageType::Resume, &access_code, &remote_id, &client); }}>
+            "Resume"
+        </button>
+        <button on:click={
+            let access_code = access_code.clone();
+            let remote_id = remote_id.clone();
+            let client = client.clone();
+            move |_| { publish(MessageType::Pause, &access_code, &remote_id, &client); }}>
+            "Pause"
+        </button>
+        <button on:click={
+            let access_code = access_code.clone();
+            let remote_id = remote_id.clone();
+            let client = client.clone();
+            move |_| { publish(MessageType::Stop, &access_code, &remote_id, &client); }}>
+            "Stop"
+        </button>
+    }
+}
+
+#[component]
+fn App() -> impl IntoView {
+    view! {
+        <Router>
+            <Routes>
+                <Route path="/" view=Player/>
+            </Routes>
+        </Router>
     }
 }
 
 fn main() {
-    yew::Renderer::<App>::new().render();
+    mount_to_body(|| view! { <App/> });
 }

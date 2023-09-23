@@ -33,6 +33,31 @@ impl StompUrl {
     }
 }
 
+#[wasm_bindgen(module = "@stomp/stompjs")]
+extern "C" {
+    type Client;
+
+    #[wasm_bindgen(constructor)]
+    fn new(conf: &JsValue) -> Client;
+
+    #[wasm_bindgen(method)]
+    fn activate(this: &Client);
+
+    #[wasm_bindgen(method, getter)]
+    fn connected(this: &Client) -> bool;
+
+    #[wasm_bindgen(method)]
+    fn publish(this: &Client, params: &JsValue);
+}
+
+pub struct StompClient(Client);
+
+#[derive(Error, Debug, PartialEq)]
+pub enum StompClientError {
+    #[error("Not connected")]
+    NotConnected,
+}
+
 #[derive(Serialize, Deserialize)]
 struct StompHeaders {
     login: String,
@@ -51,8 +76,6 @@ struct IPublishParams {
     body: String,
 }
 
-pub struct StompClient(Client);
-
 impl StompClient {
     pub fn new(url: &StompUrl, login: &str, passcode: &str) -> Self {
         let conf = StompConfig {
@@ -62,19 +85,27 @@ impl StompClient {
                 passcode: passcode.to_string(),
             },
         };
-        Self(Client::new(&JsValue::from_serde(&conf).unwrap()))
+        Self(Client::new(&JsValue::from_serde(&conf).unwrap())) // to_string always succeeds
     }
 
     pub fn activate(&self) {
         self.0.activate();
     }
 
-    pub fn publish<T: ?Sized + Serialize>(&self, msg: &T, dest: &str) {
+    pub fn connected(&self) -> bool {
+        self.0.connected()
+    }
+
+    pub fn publish(&self, msg: &str, dest: &str) -> Result<(), StompClientError> {
+        if !self.connected() {
+            return Err(StompClientError::NotConnected);
+        }
         let params = IPublishParams {
             destination: dest.to_string(),
-            body: serde_json::to_string(&msg).unwrap(),
+            body: msg.to_string(),
         };
-        self.0.publish(&JsValue::from_serde(&params).unwrap());
+        self.0.publish(&JsValue::from_serde(&params).unwrap()); // to_string always succeeds
+        Ok(())
     }
 }
 

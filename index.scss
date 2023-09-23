@@ -1,28 +1,48 @@
-html, body {
-  height: 100%;
-  margin: 0;
-}
-
 body {
-  align-items: center;
+  background-color: #000;
+  color: #fff;
+  font-family: 'Arial', sans-serif;
+}
+
+.music-player {
+  max-width: 400px;
+  margin: auto;
+  border: 1px solid #333;
+}
+
+.track-list {
+  max-height: 200px;
+  overflow-y: scroll;
+
+  .track {
+    padding: 10px 20px;
+    border-bottom: 1px solid #333;
+
+    &:hover {
+      background-color: #222;
+    }
+
+    .track-name {
+      font-weight: bold;
+    }
+  }
+}
+
+.controls {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background-color: #111;
 
-  background: linear-gradient(to bottom right, #444444, #009a5b);
-  font-size: 1.5rem;
-}
+  .control-btn {
+    padding: 10px;
+    background-color: #333;
+    border: none;
+    color: #fff;
+    cursor: pointer;
 
-main {
-  color: #fff6d5;
-  font-family: sans-serif;
-  text-align: center;
-}
-
-.logo {
-  height: 20em;
-}
-
-h1 + .subtitle {
-  display: block;
-  margin-top: -1em;
+    &:hover {
+      background-color: #555;
+    }
+  }
 }
