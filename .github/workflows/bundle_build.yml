@@ -46,6 +46,9 @@ jobs:
         with:
           version: "latest"
 
+      - name: Create dist_js directory
+        run: mkdir dist_js
+
       - name: Build Leptos bundle
         run: trunk build --release
 
