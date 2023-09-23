@@ -1,4 +1,4 @@
-name: Yew bundle build
+name: Leptos bundle build
 
 on:
   pull_request:
