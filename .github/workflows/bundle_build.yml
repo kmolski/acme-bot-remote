@@ -53,7 +53,7 @@ jobs:
         run: mkdir dist_js
 
       - name: Build Leptos bundle
-        run: trunk build --release
+        run: trunk build --release --public-url "/acme-bot-remote"
 
       - name: Upload GitHub Pages bundle
         uses: actions/upload-pages-artifact@v2
