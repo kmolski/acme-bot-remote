@@ -46,5 +46,13 @@ jobs:
         with:
           version: "latest"
 
-      - name: Build Yew bundle
+      - name: Build Leptos bundle
         run: trunk build --release
+
+      - name: Upload GitHub Pages bundle
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v2
