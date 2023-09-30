@@ -8,7 +8,7 @@ updates:
       test:
         dependency-type: "development"
       semver-patch:
-        update-types: ["version-update:semver-patch"]
+        update-types: ["patch"]
 
   - package-ecosystem: "npm"
     directory: "/"
