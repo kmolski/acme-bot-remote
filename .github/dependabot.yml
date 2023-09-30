@@ -4,6 +4,11 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    groups:
+      test:
+        dependency-type: "development"
+      semver-patch:
+        update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: "npm"
     directory: "/"
