@@ -1,11 +1,16 @@
+// Copyright (C) 2023  Krzysztof Molski
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 #![allow(non_snake_case)]
 
+/// Synchronous wrapper for the stompjs library.
 use gloo_utils::format::JsValueSerdeExt;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::{ParseError, Url};
 use wasm_bindgen::prelude::*;
 
+/// URL for a STOMP-over-WebSocket secure connection.
 pub struct StompUrl(Url);
 
 #[derive(Error, Debug, PartialEq)]
@@ -13,10 +18,10 @@ pub enum StompUrlError {
     #[error("Invalid URL: {0}")]
     InvalidUrl(#[from] ParseError),
 
-    #[error("URL must use wss scheme")]
+    #[error("URL must use the WSS scheme")]
     InvalidScheme,
 
-    #[error("URL cannot have a fragment")]
+    #[error("URL cannot contain a fragment")]
     HasFragment,
 }
 
@@ -85,7 +90,9 @@ impl StompClient {
                 passcode: passcode.to_string(),
             },
         };
-        Self(Client::new(&JsValue::from_serde(&conf).unwrap())) // to_string always succeeds
+        Self(Client::new(
+            &JsValue::from_serde(&conf).expect("from_serde always succeeds"),
+        ))
     }
 
     pub fn activate(&self) {
@@ -100,11 +107,12 @@ impl StompClient {
         if !self.connected() {
             return Err(StompClientError::NotConnected);
         }
-        let params = IPublishParams {
+        let pub_params = IPublishParams {
             destination: dest.to_string(),
             body: msg.to_string(),
         };
-        self.0.publish(&JsValue::from_serde(&params).unwrap()); // to_string always succeeds
+        let args = JsValue::from_serde(&pub_params).expect("from_serde always succeeds");
+        self.0.publish(&args);
         Ok(())
     }
 }

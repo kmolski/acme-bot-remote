@@ -1,6 +1,8 @@
+// Copyright (C) 2022-2023  Krzysztof Molski
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 use std::rc::Rc;
 
-use base64::engine;
 use base64::prelude::*;
 use leptos::*;
 use leptos_router::*;
@@ -25,12 +27,23 @@ struct Message {
     code: String,
 }
 
+fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &StompClient) {
+    let command = Message {
+        op,
+        code: access_code.to_string(),
+    };
+    let msg = serde_json::to_string(&command).unwrap();
+    client
+        .publish(&msg, &format!("/exchange/acme_bot_remote/{remote_id}"))
+        .expect("TODO: panic message");
+}
+
 #[component]
 fn Player() -> impl IntoView {
     let query_params = use_query_map().get_untracked();
     let access_code = Rc::new(query_params.get("ac").unwrap().to_string());
     let remote_id = Rc::new(query_params.get("rid").unwrap().to_string());
-    let rcs_bytes = engine::general_purpose::URL_SAFE_NO_PAD
+    let rcs_bytes = BASE64_URL_SAFE_NO_PAD
         .decode(query_params.get("rcs").unwrap())
         .unwrap();
     let remote_server = String::from_utf8(rcs_bytes).unwrap();
@@ -44,17 +57,6 @@ fn Player() -> impl IntoView {
     let remote_url = StompUrl::new(url.as_str()).unwrap();
     let client = Rc::new(StompClient::new(&remote_url, &login, &password));
     client.activate();
-
-    fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &StompClient) {
-        let command = Message {
-            op,
-            code: access_code.to_string(),
-        };
-        let msg = serde_json::to_string(&command).unwrap();
-        client
-            .publish(&msg, &format!("/exchange/acme_bot_remote/{}", remote_id))
-            .expect("TODO: panic message");
-    }
 
     view! {
         <button on:click={
