@@ -1,0 +1,352 @@
+{
+  "$defs": {
+    "ClearCommand": {
+      "description": "Remote command to clear the player's queue.",
+      "properties": {
+        "op": {
+          "const": "clear",
+          "title": "Op"
+        },
+        "code": {
+          "title": "Code",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "op",
+        "code"
+      ],
+      "title": "ClearCommand",
+      "type": "object"
+    },
+    "LoopCommand": {
+      "description": "Remote command to set the player's loop.",
+      "properties": {
+        "op": {
+          "const": "loop",
+          "title": "Op"
+        },
+        "code": {
+          "title": "Code",
+          "type": "integer"
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "op",
+        "code",
+        "enabled"
+      ],
+      "title": "LoopCommand",
+      "type": "object"
+    },
+    "MoveCommand": {
+      "description": "Move command to skip to an entry in the queue.",
+      "properties": {
+        "op": {
+          "const": "move",
+          "title": "Op"
+        },
+        "code": {
+          "title": "Code",
+          "type": "integer"
+        },
+        "offset": {
+          "title": "Offset",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op",
+        "code",
+        "offset",
+        "id"
+      ],
+      "title": "MoveCommand",
+      "type": "object"
+    },
+    "PauseCommand": {
+      "description": "Remote command to pause the player.",
+      "properties": {
+        "op": {
+          "const": "pause",
+          "title": "Op"
+        },
+        "code": {
+          "title": "Code",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "op",
+        "code"
+      ],
+      "title": "PauseCommand",
+      "type": "object"
+    },
+    "PlayerModel": {
+      "description": "Data model for a MusicPlayer instance.",
+      "properties": {
+        "loop": {
+          "title": "Loop",
+          "type": "boolean"
+        },
+        "volume": {
+          "title": "Volume",
+          "type": "integer"
+        },
+        "state": {
+          "$ref": "#/$defs/PlayerState"
+        },
+        "queue": {
+          "items": {
+            "$ref": "#/$defs/QueueEntry"
+          },
+          "title": "Queue",
+          "type": "array"
+        }
+      },
+      "required": [
+        "loop",
+        "volume",
+        "state",
+        "queue"
+      ],
+      "title": "PlayerModel",
+      "type": "object"
+    },
+    "PlayerState": {
+      "description": "State set for the MusicPlayer implementation.",
+      "enum": [
+        "idle",
+        "playing",
+        "paused",
+        "stopped",
+        "disconnected"
+      ],
+      "title": "PlayerState",
+      "type": "string"
+    },
+    "QueueEntry": {
+      "description": "Data model for a MusicQueue entry.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "entries": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/QueueEntry"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Entries"
+        },
+        "uploader": {
+          "title": "Uploader",
+          "type": "string"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Duration"
+        },
+        "webpage_url": {
+          "title": "Webpage Url",
+          "type": "string"
+        },
+        "uploader_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Uploader Url"
+        },
+        "duration_string": {
+          "title": "Duration String",
+          "type": "string"
+        },
+        "thumbnail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Thumbnail"
+        },
+        "extractor": {
+          "title": "Extractor",
+          "type": "string"
+        }
+      },
+      "title": "QueueEntry",
+      "type": "object"
+    },
+    "RemoteCommandModel": {
+      "description": "Root model for remote control commands.",
+      "discriminator": {
+        "mapping": {
+          "clear": "#/$defs/ClearCommand",
+          "loop": "#/$defs/LoopCommand",
+          "move": "#/$defs/MoveCommand",
+          "pause": "#/$defs/PauseCommand",
+          "remove": "#/$defs/RemoveCommand",
+          "resume": "#/$defs/ResumeCommand",
+          "stop": "#/$defs/StopCommand",
+          "volume": "#/$defs/VolumeCommand"
+        },
+        "propertyName": "op"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/PauseCommand"
+        },
+        {
+          "$ref": "#/$defs/StopCommand"
+        },
+        {
+          "$ref": "#/$defs/ResumeCommand"
+        },
+        {
+          "$ref": "#/$defs/ClearCommand"
+        },
+        {
+          "$ref": "#/$defs/LoopCommand"
+        },
+        {
+          "$ref": "#/$defs/VolumeCommand"
+        },
+        {
+          "$ref": "#/$defs/RemoveCommand"
+        },
+        {
+          "$ref": "#/$defs/MoveCommand"
+        }
+      ],
+      "title": "RemoteCommandModel"
+    },
+    "RemoveCommand": {
+      "description": "Remote command to remove an entry from the queue.",
+      "properties": {
+        "op": {
+          "const": "remove",
+          "title": "Op"
+        },
+        "code": {
+          "title": "Code",
+          "type": "integer"
+        },
+        "offset": {
+          "title": "Offset",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op",
+        "code",
+        "offset",
+        "id"
+      ],
+      "title": "RemoveCommand",
+      "type": "object"
+    },
+    "ResumeCommand": {
+      "description": "Remote command to resume the player.",
+      "properties": {
+        "op": {
+          "const": "resume",
+          "title": "Op"
+        },
+        "code": {
+          "title": "Code",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "op",
+        "code"
+      ],
+      "title": "ResumeCommand",
+      "type": "object"
+    },
+    "StopCommand": {
+      "description": "Remote command to stop the player.",
+      "properties": {
+        "op": {
+          "const": "stop",
+          "title": "Op"
+        },
+        "code": {
+          "title": "Code",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "op",
+        "code"
+      ],
+      "title": "StopCommand",
+      "type": "object"
+    },
+    "VolumeCommand": {
+      "description": "Remote command to set the player's volume.",
+      "properties": {
+        "op": {
+          "const": "volume",
+          "title": "Op"
+        },
+        "code": {
+          "title": "Code",
+          "type": "integer"
+        },
+        "value": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Value",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "op",
+        "code",
+        "value"
+      ],
+      "title": "VolumeCommand",
+      "type": "object"
+    }
+  }
+}
