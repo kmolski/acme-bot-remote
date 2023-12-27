@@ -1,5 +1,8 @@
+const fs = require("fs");
 const esbuild = require("esbuild");
 const pkg = require("./package.json");
+
+fs.mkdirSync("./dist_js", { recursive: true });
 
 esbuild.build({
     entryPoints: Object.keys(pkg.dependencies),

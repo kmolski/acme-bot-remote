@@ -4,4 +4,4 @@ ignore = ["dist_js"]
 [[hooks]]
 stage = "pre_build"
 command = "npm"
-command_arguments = ["run", "build"]
+command_arguments = ["run", "postinstall"]
