@@ -19,22 +19,30 @@ jobs:
         with:
           node-version: "20"
 
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
-          target: wasm32-unknown-unknown
-          override: true
-          profile: minimal
+          targets: wasm32-unknown-unknown
           components: clippy
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/
+          key: cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install NPM dependencies
         run: npm install --include=dev
 
       - name: Check formatting with rustfmt
-        run: cargo fmt -- --check
+        run: cargo fmt --check
 
       - name: Lint with Clippy
-        run: cargo clippy
+        run: cargo clippy --all-targets -- -D warnings
 
       - name: Run tests
         run: cargo test
@@ -42,9 +50,6 @@ jobs:
       - uses: jetli/trunk-action@v0.4.0
         with:
           version: "latest"
-
-      - name: Create dist_js directory
-        run: mkdir dist_js
 
       - name: Build Leptos bundle
         run: trunk build --release --public-url "/acme-bot-remote"
