@@ -55,7 +55,7 @@ jobs:
         run: trunk build --release --public-url "/acme-bot-remote"
 
       - name: Upload GitHub Pages bundle
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
