@@ -123,7 +123,13 @@ mod tests {
 
     #[test]
     fn given_invalid_syntax_when_new_then_return_error() {
-        let result = StompUrl::new("foobarbaz");
+        // given
+        let url = "foobarbaz";
+
+        // when
+        let result = StompUrl::new(url);
+
+        // then
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap(),
@@ -133,19 +139,37 @@ mod tests {
 
     #[test]
     fn given_invalid_scheme_when_new_then_return_error() {
-        let result = StompUrl::new("http://example.com");
+        // given
+        let url = "http://example.com";
+
+        // when
+        let result = StompUrl::new(url);
+
+        // then
         assert!(result.is_err());
     }
 
     #[test]
     fn given_fragment_when_new_then_return_error() {
-        let result = StompUrl::new("wss://example.com/#fragment");
+        // given
+        let url = "wss://example.com/#fragment";
+
+        // when
+        let result = StompUrl::new(url);
+
+        // then
         assert!(result.is_err());
     }
 
     #[test]
     fn given_valid_url_when_new_then_return_ok() {
-        let result = StompUrl::new("wss://example.com").unwrap();
+        // given
+        let url = "wss://example.com";
+
+        // when
+        let result = StompUrl::new(url).unwrap();
+
+        // then
         assert_eq!(result.0.as_str(), "wss://example.com/");
     }
 }
