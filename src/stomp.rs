@@ -1,4 +1,4 @@
-// Copyright (C) 2023  Krzysztof Molski
+// Copyright (C) 2023-2024  Krzysztof Molski <krzysztof.molski29@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 #![allow(non_snake_case)]
@@ -41,9 +41,13 @@ impl StompUrl {
 #[wasm_bindgen(module = "@stomp/stompjs")]
 extern "C" {
     type Client;
+    type Subscription;
 
     #[wasm_bindgen(constructor)]
     fn new(conf: &JsValue) -> Client;
+
+    #[wasm_bindgen(method, setter, structural)]
+    fn set_onConnect(this: &Client, callback: &Closure<dyn FnMut(JsValue)>);
 
     #[wasm_bindgen(method)]
     fn activate(this: &Client);
@@ -82,7 +86,12 @@ struct IPublishParams {
 }
 
 impl StompClient {
-    pub fn new(url: &StompUrl, login: &str, passcode: &str) -> Self {
+    pub fn new(
+        url: &StompUrl,
+        login: &str,
+        passcode: &str,
+        on_connect_callback: Option<impl FnMut(JsValue) + 'static>,
+    ) -> Self {
         let conf = StompConfig {
             brokerURL: url.0.to_string(),
             connectHeaders: StompHeaders {
@@ -90,9 +99,13 @@ impl StompClient {
                 passcode: passcode.to_string(),
             },
         };
-        Self(Client::new(
-            &JsValue::from_serde(&conf).expect("from_serde always succeeds"),
-        ))
+        let client = Client::new(&JsValue::from_serde(&conf).expect("from_serde always succeeds"));
+        if let Some(on_connect) = on_connect_callback {
+            let callback = Closure::new(on_connect);
+            client.set_onConnect(&callback);
+            callback.forget();
+        }
+        Self(client, None)
     }
 
     pub fn activate(&self) {

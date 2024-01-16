@@ -1,7 +1,8 @@
-// Copyright (C) 2022-2023  Krzysztof Molski
+// Copyright (C) 2022-2024  Krzysztof Molski <krzysztof.molski29@gmail.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::rc::Rc;
+use std::sync::{Arc, Mutex, Weak};
 
 use base64::prelude::*;
 use leptos::*;
@@ -27,15 +28,19 @@ struct Message {
     code: String,
 }
 
-fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &StompClient) {
+fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &Arc<Mutex<StompClient>>) {
     let command = Message {
         op,
         code: access_code.to_string(),
     };
     let msg = serde_json::to_string(&command).unwrap();
-    client
+    if let Err(e) = client
+        .lock()
+        .unwrap()
         .publish(&msg, &format!("/exchange/acme_bot_remote/{remote_id}"))
-        .expect("TODO: panic message");
+    {
+        logging::debug_warn!("Could not send command: {e:?}")
+    }
 }
 
 #[component]
@@ -55,10 +60,48 @@ fn Player() -> impl IntoView {
     url.set_password(None).unwrap();
 
     let remote_url = StompUrl::new(url.as_str()).unwrap();
-    let client = Rc::new(StompClient::new(&remote_url, &login, &password));
-    client.activate();
+    let exchange = format!("/exchange/acme_bot_remote_{remote_id}_{access_code}");
+    let client: Arc<Mutex<StompClient>> = Arc::new_cyclic(|weak_ref: &Weak<Mutex<StompClient>>| {
+        let weak = weak_ref.clone();
+        Mutex::new(StompClient::new(
+            &remote_url,
+            &login,
+            &password,
+            Some(move |_| {
+                if let Some(arc) = weak.upgrade() {
+                    let mut client = arc.lock().expect("lock poisoned");
+                    if client.connected() {
+                        leptos::logging::log!("SUBBING!");
+                        match client.subscribe(
+                            move |_| {
+                                leptos::logging::log!("Message received!");
+                            },
+                            &exchange,
+                        ) {
+                            Err(e) => leptos::logging::debug_warn!("{e:?}"),
+                            Ok(_) => {}
+                        }
+                        match client.publish("", &exchange) {
+                            Err(e) => leptos::logging::debug_warn!("{e:?}"),
+                            Ok(_) => {}
+                        }
+                        leptos::logging::log!("DONE!");
+                    }
+                }
+            }),
+        ))
+    });
+    let (tracks, set_tracks) = create_signal(String::new());
+    let arc = client.clone();
+    {
+        match client.lock() {
+            Ok(c) => c.activate(),
+            Err(e) => leptos::logging::debug_warn!("{e:?}"),
+        }
+    }
 
     view! {
+        <div>{move || tracks.get()}</div>
         <button on:click={
             let access_code = access_code.clone();
             let remote_id = remote_id.clone();
@@ -72,13 +115,6 @@ fn Player() -> impl IntoView {
             let client = client.clone();
             move |_| { publish(MessageType::Pause, &access_code, &remote_id, &client); }}>
             "Pause"
-        </button>
-        <button on:click={
-            let access_code = access_code.clone();
-            let remote_id = remote_id.clone();
-            let client = client.clone();
-            move |_| { publish(MessageType::Stop, &access_code, &remote_id, &client); }}>
-            "Stop"
         </button>
     }
 }
