@@ -1,4 +1,4 @@
-// Copyright (C) 2023-2024  Krzysztof Molski <krzysztof.molski29@gmail.com>
+// Copyright (C) 2023-2024  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 #![allow(non_snake_case)]
@@ -57,9 +57,17 @@ extern "C" {
 
     #[wasm_bindgen(method)]
     fn publish(this: &Client, params: &JsValue);
+
+    #[wasm_bindgen(method)]
+    fn subscribe(
+        this: &Client,
+        destination: &JsValue,
+        callback: &Closure<dyn FnMut(JsValue)>,
+        headers: &JsValue,
+    ) -> Subscription;
 }
 
-pub struct StompClient(Client);
+pub struct StompClient(Client, Option<Subscription>);
 
 #[derive(Error, Debug, PartialEq)]
 pub enum StompClientError {
@@ -116,6 +124,10 @@ impl StompClient {
         self.0.connected()
     }
 
+    pub fn subscribed(&self) -> bool {
+        self.1.is_some()
+    }
+
     pub fn publish(&self, msg: &str, dest: &str) -> Result<(), StompClientError> {
         if !self.connected() {
             return Err(StompClientError::NotConnected);
@@ -126,6 +138,23 @@ impl StompClient {
         };
         let args = JsValue::from_serde(&pub_params).expect("from_serde always succeeds");
         self.0.publish(&args);
+        Ok(())
+    }
+
+    pub fn subscribe(
+        &mut self,
+        callback: impl FnMut(JsValue) + 'static,
+        dest: &str,
+    ) -> Result<(), StompClientError> {
+        if !self.connected() {
+            return Err(StompClientError::NotConnected);
+        }
+        let callback = Closure::new(callback);
+        self.1 = Some(
+            self.0
+                .subscribe(&JsValue::from_str(dest), &callback, &JsValue::null()),
+        );
+        callback.forget();
         Ok(())
     }
 }

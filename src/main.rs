@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024  Krzysztof Molski <krzysztof.molski29@gmail.com>
+// Copyright (C) 2022-2024  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::rc::Rc;
@@ -60,7 +60,7 @@ fn Player() -> impl IntoView {
     url.set_password(None).unwrap();
 
     let remote_url = StompUrl::new(url.as_str()).unwrap();
-    let exchange = format!("/exchange/acme_bot_remote_{remote_id}_{access_code}");
+    let exchange = format!("/exchange/acme_bot_remote_update/{remote_id}.{access_code}");
     let client: Arc<Mutex<StompClient>> = Arc::new_cyclic(|weak_ref: &Weak<Mutex<StompClient>>| {
         let weak = weak_ref.clone();
         Mutex::new(StompClient::new(
