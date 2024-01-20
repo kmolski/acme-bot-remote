@@ -72,18 +72,16 @@ fn Player() -> impl IntoView {
                     let mut client = arc.lock().expect("lock poisoned");
                     if client.connected() && !client.subscribed() {
                         leptos::logging::log!("SUBBING!");
-                        match client.subscribe(
+                        if let Err(e) = client.subscribe(
                             move |_| {
                                 leptos::logging::log!("Message received!");
                             },
                             &exchange,
                         ) {
-                            Err(e) => leptos::logging::debug_warn!("{e:?}"),
-                            Ok(_) => {}
+                            leptos::logging::debug_warn!("{e:?}");
                         }
-                        match client.publish("", &exchange) {
-                            Err(e) => leptos::logging::debug_warn!("{e:?}"),
-                            Ok(_) => {}
+                        if let Err(e) = client.publish("", &exchange) {
+                            leptos::logging::debug_warn!("{e:?}");
                         }
                         leptos::logging::log!("DONE!");
                     }
