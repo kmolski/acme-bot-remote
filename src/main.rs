@@ -10,6 +10,7 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+use crate::player::PubSubClient;
 use crate::stomp::{StompClient, StompUrl};
 
 mod player;
