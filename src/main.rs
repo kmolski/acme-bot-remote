@@ -39,7 +39,7 @@ fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &Arc<Mut
         .unwrap()
         .publish(&msg, &format!("/exchange/acme_bot_remote/{remote_id}"))
     {
-        logging::debug_warn!("Could not send command: {e:?}")
+        logging::warn!("Could not send command: {e:?}")
     }
 }
 
