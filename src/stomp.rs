@@ -1,4 +1,4 @@
-// Copyright (C) 2023  Krzysztof Molski
+// Copyright (C) 2023-2024  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 #![allow(non_snake_case)]
@@ -38,12 +38,18 @@ impl StompUrl {
     }
 }
 
+type ConsumerClosure = Closure<dyn FnMut(JsValue)>;
+
 #[wasm_bindgen(module = "@stomp/stompjs")]
 extern "C" {
     type Client;
+    type Subscription;
 
     #[wasm_bindgen(constructor)]
     fn new(conf: &JsValue) -> Client;
+
+    #[wasm_bindgen(method, setter, structural)]
+    fn set_onConnect(this: &Client, callback: &ConsumerClosure);
 
     #[wasm_bindgen(method)]
     fn activate(this: &Client);
@@ -53,9 +59,23 @@ extern "C" {
 
     #[wasm_bindgen(method)]
     fn publish(this: &Client, params: &JsValue);
+
+    #[wasm_bindgen(method)]
+    fn subscribe(
+        this: &Client,
+        destination: &JsValue,
+        callback: &ConsumerClosure,
+        headers: &JsValue,
+    ) -> Subscription;
 }
 
-pub struct StompClient(Client);
+pub struct StompClient {
+    client: Client,
+    subscription: Option<Subscription>,
+    subscription_callback: Option<ConsumerClosure>,
+    #[allow(unused)]
+    on_connect_callback: Option<ConsumerClosure>,
+}
 
 #[derive(Error, Debug, PartialEq)]
 pub enum StompClientError {
@@ -82,7 +102,12 @@ struct IPublishParams {
 }
 
 impl StompClient {
-    pub fn new(url: &StompUrl, login: &str, passcode: &str) -> Self {
+    pub fn new(
+        url: &StompUrl,
+        login: &str,
+        passcode: &str,
+        on_connect: Option<impl FnMut(JsValue) + 'static>,
+    ) -> Self {
         let conf = StompConfig {
             brokerURL: url.0.to_string(),
             connectHeaders: StompHeaders {
@@ -90,17 +115,30 @@ impl StompClient {
                 passcode: passcode.to_string(),
             },
         };
-        Self(Client::new(
-            &JsValue::from_serde(&conf).expect("from_serde always succeeds"),
-        ))
+        let on_connect_callback = on_connect.map(Closure::new);
+        let client = Client::new(&JsValue::from_serde(&conf).expect("from_serde always succeeds"));
+        if let Some(ref callback) = on_connect_callback {
+            client.set_onConnect(callback);
+        }
+
+        Self {
+            client,
+            subscription: None,
+            subscription_callback: None,
+            on_connect_callback,
+        }
     }
 
     pub fn activate(&self) {
-        self.0.activate();
+        self.client.activate();
     }
 
     pub fn connected(&self) -> bool {
-        self.0.connected()
+        self.client.connected()
+    }
+
+    pub fn subscribed(&self) -> bool {
+        self.subscription.is_some()
     }
 
     pub fn publish(&self, msg: &str, dest: &str) -> Result<(), StompClientError> {
@@ -112,7 +150,24 @@ impl StompClient {
             body: msg.to_string(),
         };
         let args = JsValue::from_serde(&pub_params).expect("from_serde always succeeds");
-        self.0.publish(&args);
+        self.client.publish(&args);
+        Ok(())
+    }
+
+    pub fn subscribe(
+        &mut self,
+        callback: impl FnMut(JsValue) + 'static,
+        dest: &str,
+    ) -> Result<(), StompClientError> {
+        if !self.connected() {
+            return Err(StompClientError::NotConnected);
+        }
+        self.subscription_callback = Some(Closure::new(callback));
+        self.subscription = Some(self.client.subscribe(
+            &JsValue::from_str(dest),
+            self.subscription_callback.as_ref().unwrap(),
+            &JsValue::null(),
+        ));
         Ok(())
     }
 }
