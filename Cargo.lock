@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "gloo-utils 0.2.0",
+ "js-sys",
  "leptos",
  "leptos_router",
  "serde",

@@ -5,6 +5,7 @@
 
 /// Synchronous wrapper for the stompjs library.
 use gloo_utils::format::JsValueSerdeExt;
+use js_sys::Object;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::{ParseError, Url};
@@ -13,7 +14,7 @@ use wasm_bindgen::prelude::*;
 /// URL for a STOMP-over-WebSocket secure connection.
 pub struct StompUrl(Url);
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, Eq, PartialEq)]
 pub enum StompUrlError {
     #[error("Invalid URL: {0}")]
     InvalidUrl(#[from] ParseError),
@@ -26,6 +27,19 @@ pub enum StompUrlError {
 }
 
 impl StompUrl {
+    /// Parse a STOMP-over-WebSocket URL from a string.
+    ///
+    /// # Arguments
+    ///
+    /// * `url`: &str - STOMP-over-WebSocket URL to parse
+    ///
+    /// returns: Result<StompUrl, StompUrlError>
+    ///
+    /// # Errors
+    ///
+    /// * `StompUrlError::InvalidUrl` - invalid URL syntax
+    /// * `StompUrlError::InvalidScheme` - invalid URL scheme (must be WSS)
+    /// * `StompUrlError::HasFragment` - invalid URL fragment (must be empty)
     pub fn new(url: &str) -> Result<Self, StompUrlError> {
         let url = Url::parse(url)?;
         if url.scheme() != "wss" {
@@ -40,35 +54,9 @@ impl StompUrl {
 
 type ConsumerClosure = Closure<dyn FnMut(JsValue)>;
 
-#[wasm_bindgen(module = "@stomp/stompjs")]
-extern "C" {
-    type Client;
-    type Subscription;
-
-    #[wasm_bindgen(constructor)]
-    fn new(conf: &JsValue) -> Client;
-
-    #[wasm_bindgen(method, setter, structural)]
-    fn set_onConnect(this: &Client, callback: &ConsumerClosure);
-
-    #[wasm_bindgen(method)]
-    fn activate(this: &Client);
-
-    #[wasm_bindgen(method, getter)]
-    fn connected(this: &Client) -> bool;
-
-    #[wasm_bindgen(method)]
-    fn publish(this: &Client, params: &JsValue);
-
-    #[wasm_bindgen(method)]
-    fn subscribe(
-        this: &Client,
-        destination: &JsValue,
-        callback: &ConsumerClosure,
-        headers: &JsValue,
-    ) -> Subscription;
-}
-
+/// Synchronous wrapper for the stompjs.Client class.
+///
+/// See https://stomp-js.github.io/api-docs/latest/classes/Client.html for details.
 pub struct StompClient {
     client: Client,
     subscription: Option<Subscription>,
@@ -77,37 +65,27 @@ pub struct StompClient {
     on_connect_callback: Option<ConsumerClosure>,
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, Eq, PartialEq)]
 pub enum StompClientError {
     #[error("Not connected")]
     NotConnected,
 }
 
-#[derive(Serialize, Deserialize)]
-struct StompHeaders {
-    login: String,
-    passcode: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct StompConfig {
-    brokerURL: String,
-    connectHeaders: StompHeaders,
-}
-
-#[derive(Serialize, Deserialize)]
-struct IPublishParams {
-    destination: String,
-    body: String,
-}
-
 impl StompClient {
-    pub fn new(
-        url: &StompUrl,
-        login: &str,
-        passcode: &str,
-        on_connect: Option<impl FnMut(JsValue) + 'static>,
-    ) -> Self {
+    /// Create a new STOMP-over-WebSocket client.
+    ///
+    /// # Arguments
+    ///
+    /// * `url`: &StompUrl - URL of the message broker
+    /// * `login`: &str - user identifier used for authentication
+    /// * `passcode`: &str - password used for authentication
+    /// * `on_connect`: Option<C> - callback invoked on a successful connection
+    ///
+    /// returns: StompClient
+    pub fn new<C>(url: &StompUrl, login: &str, passcode: &str, on_connect: Option<C>) -> Self
+    where
+        C: FnMut(JsValue) + 'static,
+    {
         let conf = StompConfig {
             brokerURL: url.0.to_string(),
             connectHeaders: StompHeaders {
@@ -129,18 +107,33 @@ impl StompClient {
         }
     }
 
+    /// Start connecting to the message broker.
     pub fn activate(&self) {
         self.client.activate();
     }
 
+    /// Check if the client is connected to the message broker.
     pub fn connected(&self) -> bool {
         self.client.connected()
     }
 
+    /// Check if the client is subscribed to a STOMP destination.
     pub fn subscribed(&self) -> bool {
         self.subscription.is_some()
     }
 
+    /// Publish a message to the given STOMP destination.
+    ///
+    /// # Arguments
+    ///
+    /// * `msg`: &str - message content
+    /// * `dest`: &str - STOMP destination
+    ///
+    /// returns: Result<(), StompClientError>
+    ///
+    /// # Errors
+    ///
+    /// * `StompClientError::NotConnected` - client is not connected to the message broker
     pub fn publish(&self, msg: &str, dest: &str) -> Result<(), StompClientError> {
         if !self.connected() {
             return Err(StompClientError::NotConnected);
@@ -154,11 +147,22 @@ impl StompClient {
         Ok(())
     }
 
-    pub fn subscribe(
-        &mut self,
-        callback: impl FnMut(JsValue) + 'static,
-        dest: &str,
-    ) -> Result<(), StompClientError> {
+    /// Subscribe to a STOMP destination.
+    ///
+    /// # Arguments
+    ///
+    /// * `callback`: C - callback invoked when a message is received
+    /// * `dest`: &str - STOMP destination
+    ///
+    /// returns: Result<(), StompClientError>
+    ///
+    /// # Errors
+    ///
+    /// * `StompClientError::NotConnected` - client is not connected to the message broker
+    pub fn subscribe<C>(&mut self, callback: C, dest: &str) -> Result<(), StompClientError>
+    where
+        C: FnMut(JsValue) + 'static,
+    {
         if !self.connected() {
             return Err(StompClientError::NotConnected);
         }
@@ -170,6 +174,72 @@ impl StompClient {
         ));
         Ok(())
     }
+}
+
+impl Drop for StompClient {
+    fn drop(&mut self) {
+        if self.connected() {
+            self.client.deactivate(&JsValue::from(Object::new()));
+        }
+    }
+}
+
+/// Incoming STOMP message with a text or binary body.
+#[derive(Serialize, Deserialize)]
+pub struct IMessage {
+    pub body: Option<String>,
+    pub binaryBody: Option<Vec<u8>>,
+    pub isBinaryBody: bool,
+}
+
+#[wasm_bindgen(module = "@stomp/stompjs")]
+extern "C" {
+    type Client;
+    type Subscription;
+
+    #[wasm_bindgen(constructor)]
+    fn new(conf: &JsValue) -> Client;
+
+    #[wasm_bindgen(method, setter, structural)]
+    fn set_onConnect(this: &Client, callback: &ConsumerClosure);
+
+    #[wasm_bindgen(method)]
+    fn activate(this: &Client);
+
+    #[wasm_bindgen(method)]
+    fn deactivate(this: &Client, options: &JsValue);
+
+    #[wasm_bindgen(method, getter)]
+    fn connected(this: &Client) -> bool;
+
+    #[wasm_bindgen(method)]
+    fn publish(this: &Client, params: &JsValue);
+
+    #[wasm_bindgen(method)]
+    fn subscribe(
+        this: &Client,
+        destination: &JsValue,
+        callback: &ConsumerClosure,
+        headers: &JsValue,
+    ) -> Subscription;
+}
+
+#[derive(Serialize, Deserialize)]
+struct StompHeaders {
+    login: String,
+    passcode: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct StompConfig {
+    brokerURL: String,
+    connectHeaders: StompHeaders,
+}
+
+#[derive(Serialize, Deserialize)]
+struct IPublishParams {
+    destination: String,
+    body: String,
 }
 
 #[cfg(test)]
