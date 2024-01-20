@@ -78,10 +78,10 @@ fn Player() -> impl IntoView {
                             },
                             &exchange,
                         ) {
-                            leptos::logging::debug_warn!("{e:?}");
+                            leptos::logging::warn!("{e:?}");
                         }
                         if let Err(e) = client.publish("", &exchange) {
-                            leptos::logging::debug_warn!("{e:?}");
+                            leptos::logging::warn!("{e:?}");
                         }
                         leptos::logging::log!("DONE!");
                     }
@@ -94,7 +94,7 @@ fn Player() -> impl IntoView {
     {
         match client.lock() {
             Ok(c) => c.activate(),
-            Err(e) => leptos::logging::debug_warn!("{e:?}"),
+            Err(e) => leptos::logging::warn!("{e:?}"),
         }
     }
 
