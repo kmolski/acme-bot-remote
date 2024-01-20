@@ -3,13 +3,14 @@
 
 #![allow(non_snake_case)]
 
-/// Synchronous wrapper for the stompjs library.
 use gloo_utils::format::JsValueSerdeExt;
 use js_sys::Object;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::{ParseError, Url};
 use wasm_bindgen::prelude::*;
+
+use crate::player::{PubSubClient, PubSubError};
 
 /// URL for a STOMP-over-WebSocket secure connection.
 pub struct StompUrl(Url);
@@ -52,7 +53,8 @@ impl StompUrl {
     }
 }
 
-type ConsumerClosure = Closure<dyn FnMut(JsValue)>;
+type EventConsumer = Closure<dyn FnMut(JsValue)>;
+type MessageConsumer = Closure<dyn FnMut(IMessage)>;
 
 /// Synchronous wrapper for the stompjs.Client class.
 ///
@@ -60,15 +62,9 @@ type ConsumerClosure = Closure<dyn FnMut(JsValue)>;
 pub struct StompClient {
     client: Client,
     subscription: Option<Subscription>,
-    subscription_callback: Option<ConsumerClosure>,
+    subscription_callback: Option<MessageConsumer>,
     #[allow(unused)]
-    on_connect_callback: Option<ConsumerClosure>,
-}
-
-#[derive(Error, Debug, Eq, PartialEq)]
-pub enum StompClientError {
-    #[error("Not connected")]
-    NotConnected,
+    on_connect_callback: Option<EventConsumer>,
 }
 
 impl StompClient {
@@ -106,19 +102,21 @@ impl StompClient {
             on_connect_callback,
         }
     }
+}
 
+impl PubSubClient for StompClient {
     /// Start connecting to the message broker.
-    pub fn activate(&self) {
+    fn activate(&self) {
         self.client.activate();
     }
 
     /// Check if the client is connected to the message broker.
-    pub fn connected(&self) -> bool {
+    fn connected(&self) -> bool {
         self.client.connected()
     }
 
     /// Check if the client is subscribed to a STOMP destination.
-    pub fn subscribed(&self) -> bool {
+    fn subscribed(&self) -> bool {
         self.subscription.is_some()
     }
 
@@ -129,14 +127,14 @@ impl StompClient {
     /// * `msg`: &str - message content
     /// * `dest`: &str - STOMP destination
     ///
-    /// returns: Result<(), StompClientError>
+    /// returns: Result<(), PubSubError>
     ///
     /// # Errors
     ///
-    /// * `StompClientError::NotConnected` - client is not connected to the message broker
-    pub fn publish(&self, msg: &str, dest: &str) -> Result<(), StompClientError> {
+    /// * `PubSubError::NotConnected` - client is not connected to the message broker
+    fn publish(&self, msg: &str, dest: &str) -> Result<(), PubSubError> {
         if !self.connected() {
-            return Err(StompClientError::NotConnected);
+            return Err(PubSubError::NotConnected);
         }
         let pub_params = IPublishParams {
             destination: dest.to_string(),
@@ -154,19 +152,19 @@ impl StompClient {
     /// * `callback`: C - callback invoked when a message is received
     /// * `dest`: &str - STOMP destination
     ///
-    /// returns: Result<(), StompClientError>
+    /// returns: Result<(), PubSubError>
     ///
     /// # Errors
     ///
-    /// * `StompClientError::NotConnected` - client is not connected to the message broker
-    pub fn subscribe<C>(&mut self, callback: C, dest: &str) -> Result<(), StompClientError>
+    /// * `PubSubError::NotConnected` - client is not connected to the message broker
+    fn subscribe<C>(&mut self, callback: C, dest: &str) -> Result<(), PubSubError>
     where
-        C: FnMut(JsValue) + 'static,
+        C: Fn(String) + 'static,
     {
         if !self.connected() {
-            return Err(StompClientError::NotConnected);
+            return Err(PubSubError::NotConnected);
         }
-        self.subscription_callback = Some(Closure::new(callback));
+        self.subscription_callback = Some(Closure::new(move |msg: IMessage| callback(msg.body())));
         self.subscription = Some(self.client.subscribe(
             &JsValue::from_str(dest),
             self.subscription_callback.as_ref().unwrap(),
@@ -184,24 +182,17 @@ impl Drop for StompClient {
     }
 }
 
-/// Incoming STOMP message with a text or binary body.
-#[derive(Serialize, Deserialize)]
-pub struct IMessage {
-    pub body: Option<String>,
-    pub binaryBody: Option<Vec<u8>>,
-    pub isBinaryBody: bool,
-}
-
 #[wasm_bindgen(module = "@stomp/stompjs")]
 extern "C" {
     type Client;
     type Subscription;
+    type IMessage;
 
     #[wasm_bindgen(constructor)]
     fn new(conf: &JsValue) -> Client;
 
     #[wasm_bindgen(method, setter, structural)]
-    fn set_onConnect(this: &Client, callback: &ConsumerClosure);
+    fn set_onConnect(this: &Client, callback: &EventConsumer);
 
     #[wasm_bindgen(method)]
     fn activate(this: &Client);
@@ -219,9 +210,12 @@ extern "C" {
     fn subscribe(
         this: &Client,
         destination: &JsValue,
-        callback: &ConsumerClosure,
+        callback: &MessageConsumer,
         headers: &JsValue,
     ) -> Subscription;
+
+    #[wasm_bindgen(method, getter)]
+    fn body(this: &IMessage) -> String;
 }
 
 #[derive(Serialize, Deserialize)]

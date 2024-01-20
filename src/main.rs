@@ -1,4 +1,4 @@
-// Copyright (C) 2022-2024  Krzysztof Molski
+// Copyright (C) 2023-2024  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::rc::Rc;
@@ -12,6 +12,7 @@ use url::Url;
 
 use crate::stomp::{StompClient, StompUrl};
 
+mod player;
 mod stomp;
 
 #[derive(Serialize, Deserialize)]
@@ -60,6 +61,7 @@ fn Player() -> impl IntoView {
     url.set_username("").unwrap();
     url.set_password(None).unwrap();
 
+    let (tracks, _set_tracks) = create_signal(String::new());
     let remote_url = StompUrl::new(url.as_str()).unwrap();
     let exchange = format!("/exchange/acme_bot_remote_update/{remote_id}.{access_code}");
     let client: Arc<Mutex<StompClient>> = Arc::new_cyclic(|weak_ref: &Weak<Mutex<StompClient>>| {
@@ -71,11 +73,12 @@ fn Player() -> impl IntoView {
             Some(move |_| {
                 if let Some(arc) = weak.upgrade() {
                     let mut client = arc.lock().expect("lock poisoned");
-                    if client.connected() && !client.subscribed() {
-                        leptos::logging::log!("SUBBING!");
+                    if client.connected() {
+                        logging::log!("SUBBING!");
                         if let Err(e) = client.subscribe(
-                            move |_| {
-                                leptos::logging::log!("Message received!");
+                            move |m| {
+                                logging::log!("Message received: {}", m);
+                                _set_tracks.set(m);
                             },
                             &exchange,
                         ) {
@@ -84,13 +87,12 @@ fn Player() -> impl IntoView {
                         if let Err(e) = client.publish("", &exchange) {
                             leptos::logging::warn!("{e:?}");
                         }
-                        leptos::logging::log!("DONE!");
+                        logging::log!("DONE!");
                     }
                 }
             }),
         ))
     });
-    let (tracks, _set_tracks) = create_signal(String::new());
     let _arc = client.clone();
     {
         match client.lock() {
