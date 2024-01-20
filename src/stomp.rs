@@ -1,7 +1,7 @@
 // Copyright (C) 2023-2024  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-#![allow(dead_code, non_snake_case)]
+#![allow(non_snake_case)]
 
 /// Synchronous wrapper for the stompjs library.
 use gloo_utils::format::JsValueSerdeExt;
@@ -73,6 +73,7 @@ pub struct StompClient {
     client: Client,
     subscription: Option<Subscription>,
     subscription_callback: Option<ConsumerClosure>,
+    #[allow(unused)]
     on_connect_callback: Option<ConsumerClosure>,
 }
 
