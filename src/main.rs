@@ -70,7 +70,7 @@ fn Player() -> impl IntoView {
             Some(move |_| {
                 if let Some(arc) = weak.upgrade() {
                     let mut client = arc.lock().expect("lock poisoned");
-                    if client.connected() {
+                    if client.connected() && !client.subscribed() {
                         leptos::logging::log!("SUBBING!");
                         match client.subscribe(
                             move |_| {
@@ -91,8 +91,8 @@ fn Player() -> impl IntoView {
             }),
         ))
     });
-    let (tracks, set_tracks) = create_signal(String::new());
-    let arc = client.clone();
+    let (tracks, _set_tracks) = create_signal(String::new());
+    let _arc = client.clone();
     {
         match client.lock() {
             Ok(c) => c.activate(),

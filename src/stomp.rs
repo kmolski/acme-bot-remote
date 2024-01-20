@@ -1,7 +1,7 @@
 // Copyright (C) 2023-2024  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-#![allow(non_snake_case)]
+#![allow(dead_code, non_snake_case)]
 
 /// Synchronous wrapper for the stompjs library.
 use gloo_utils::format::JsValueSerdeExt;
@@ -100,8 +100,6 @@ struct IPublishParams {
     body: String,
 }
 
-pub type ConsumerCallback = dyn FnMut(JsValue) + 'static;
-
 impl StompClient {
     pub fn new(
         url: &StompUrl,
@@ -118,10 +116,10 @@ impl StompClient {
         };
         let on_connect_callback = on_connect.map(Closure::new);
         let client = Client::new(&JsValue::from_serde(&conf).expect("from_serde always succeeds"));
-
         if let Some(ref callback) = on_connect_callback {
-            client.set_onConnect(&callback);
+            client.set_onConnect(callback);
         }
+
         Self {
             client,
             subscription: None,
