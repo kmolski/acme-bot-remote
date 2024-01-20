@@ -105,33 +105,18 @@ impl StompClient {
 }
 
 impl PubSubClient for StompClient {
-    /// Start connecting to the message broker.
     fn activate(&self) {
         self.client.activate();
     }
 
-    /// Check if the client is connected to the message broker.
     fn connected(&self) -> bool {
         self.client.connected()
     }
 
-    /// Check if the client is subscribed to a STOMP destination.
     fn subscribed(&self) -> bool {
         self.subscription.is_some()
     }
 
-    /// Publish a message to the given STOMP destination.
-    ///
-    /// # Arguments
-    ///
-    /// * `msg`: &str - message content
-    /// * `dest`: &str - STOMP destination
-    ///
-    /// returns: Result<(), PubSubError>
-    ///
-    /// # Errors
-    ///
-    /// * `PubSubError::NotConnected` - client is not connected to the message broker
     fn publish(&self, msg: &str, dest: &str) -> Result<(), PubSubError> {
         if !self.connected() {
             return Err(PubSubError::NotConnected);
@@ -145,18 +130,6 @@ impl PubSubClient for StompClient {
         Ok(())
     }
 
-    /// Subscribe to a STOMP destination.
-    ///
-    /// # Arguments
-    ///
-    /// * `callback`: C - callback invoked when a message is received
-    /// * `dest`: &str - STOMP destination
-    ///
-    /// returns: Result<(), PubSubError>
-    ///
-    /// # Errors
-    ///
-    /// * `PubSubError::NotConnected` - client is not connected to the message broker
     fn subscribe<C>(&mut self, callback: C, dest: &str) -> Result<(), PubSubError>
     where
         C: Fn(String) + 'static,
