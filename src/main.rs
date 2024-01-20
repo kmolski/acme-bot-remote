@@ -20,6 +20,7 @@ enum MessageType {
     Resume,
     Pause,
     Stop,
+    Clear,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -113,6 +114,13 @@ fn Player() -> impl IntoView {
             let client = client.clone();
             move |_| { publish(MessageType::Pause, &access_code, &remote_id, &client); }}>
             "Pause"
+        </button>
+        <button on:click={
+            let access_code = access_code.clone();
+            let remote_id = remote_id.clone();
+            let client = client.clone();
+            move |_| { publish(MessageType::Clear, &access_code, &remote_id, &client); }}>
+            "Clear"
         </button>
     }
 }
