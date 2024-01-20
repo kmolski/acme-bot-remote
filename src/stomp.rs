@@ -202,6 +202,7 @@ mod tests {
 
         // then
         assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), StompUrlError::InvalidScheme)
     }
 
     #[test]
@@ -214,6 +215,7 @@ mod tests {
 
         // then
         assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), StompUrlError::HasFragment)
     }
 
     #[test]
