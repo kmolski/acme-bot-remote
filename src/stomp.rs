@@ -214,7 +214,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn given_invalid_syntax_when_new_then_return_error() {
+    fn new_from_invalid_url_returns_error() {
         // given
         let url = "foobarbaz";
 
@@ -230,7 +230,7 @@ mod tests {
     }
 
     #[test]
-    fn given_invalid_scheme_when_new_then_return_error() {
+    fn new_from_invalid_scheme_returns_error() {
         // given
         let url = "http://example.com";
 
@@ -243,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    fn given_fragment_when_new_then_return_error() {
+    fn new_from_fragment_url_returns_error() {
         // given
         let url = "wss://example.com/#fragment";
 
@@ -256,7 +256,7 @@ mod tests {
     }
 
     #[test]
-    fn given_valid_url_when_new_then_return_ok() {
+    fn new_from_valid_url_returns_ok() {
         // given
         let url = "wss://example.com";
 
