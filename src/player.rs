@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use thiserror::Error;
+use typify::import_types;
+
+import_types!("remote_api.json");
 
 #[derive(Error, Debug, Eq, PartialEq)]
 pub enum PubSubError {
