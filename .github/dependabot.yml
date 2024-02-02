@@ -5,8 +5,6 @@ updates:
     schedule:
       interval: "monthly"
     groups:
-      test:
-        dependency-type: "development"
       semver-patch:
         update-types: ["patch"]
 
