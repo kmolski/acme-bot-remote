@@ -2,15 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use thiserror::Error;
-use typify::import_types;
 
-import_types!("remote_api.json");
-
-#[derive(Error, Debug, Eq, PartialEq)]
-pub enum PubSubError {
-    #[error("Not connected")]
-    NotConnected,
-}
+mod snapshot;
 
 pub trait PubSubClient {
     /// Start connecting to the message broker.
@@ -51,4 +44,10 @@ pub trait PubSubClient {
     fn subscribe<C>(&mut self, callback: C, dest: &str) -> Result<(), PubSubError>
     where
         C: Fn(String) + 'static;
+}
+
+#[derive(Error, Debug, Eq, PartialEq)]
+pub enum PubSubError {
+    #[error("Not connected")]
+    NotConnected,
 }
