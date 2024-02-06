@@ -10,7 +10,7 @@ repository = "https://github.com/kmolski/acme-bot-remote"
 [dependencies]
 base64 = "0.21.7"
 gloo-utils = { version = "0.2.0", features = ["serde"] }
-js-sys = "0.3.67"
+js-sys = "0.3.68"
 leptos = { version = "0.6.5", features = ["csr"] }
 leptos_router = { version = "0.6.5", features = ["csr"] }
 serde = { version = "1.0.196", features = ["derive"] }
