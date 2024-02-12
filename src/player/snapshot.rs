@@ -14,7 +14,7 @@ pub trait PlayerSnapshot {
     /// Get the current state of the player.
     fn state(&self) -> MusicPlayerState;
 
-    /// Get an iterator over the current queue contents.
+    /// Get the contents of the queue.
     fn queue(&self) -> &[impl TrackSnapshot];
 }
 
