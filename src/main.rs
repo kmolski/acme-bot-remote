@@ -10,8 +10,8 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::player::PubSubClient;
 use crate::player::snapshot::{PlayerModel, PlayerSnapshot, TrackSnapshot};
+use crate::player::PubSubClient;
 use crate::stomp::{StompClient, StompUrl};
 
 mod player;
@@ -24,7 +24,7 @@ enum MessageType {
     Pause,
     Stop,
     Clear,
-    Move
+    Move,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -56,12 +56,18 @@ fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &Arc<Mut
     }
 }
 
-fn publish_move(offset: usize, id: &str, access_code: &str, remote_id: &str, client: &Arc<Mutex<StompClient>>) {
+fn publish_move(
+    offset: usize,
+    id: &str,
+    access_code: &str,
+    remote_id: &str,
+    client: &Arc<Mutex<StompClient>>,
+) {
     let command = MoveMessage {
         op: MessageType::Move,
         code: access_code.to_string(),
         offset,
-        id: id.to_string()
+        id: id.to_string(),
     };
     let msg = serde_json::to_string(&command).unwrap();
     if let Err(e) = client
@@ -109,7 +115,7 @@ fn Player() -> impl IntoView {
                                 logging::log!("Message received: {}", m);
                                 match serde_json::from_str(&m) {
                                     Ok(p) => set_snapshot.set(Some(p)),
-                                    Err(e) => logging::error!("Invalid snapshot: {}", e)
+                                    Err(e) => logging::error!("Invalid snapshot: {}", e),
                                 }
                                 set_tracks.set(m);
                             },
