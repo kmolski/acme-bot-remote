@@ -3,7 +3,14 @@
 
 use thiserror::Error;
 
-mod snapshot;
+pub mod snapshot;
+
+//pub struct MusicPlayer<P: PlayerSnapshot, C: PubSubClient> {
+//    access_code: String,
+//    remote_id: String,
+//    snapshot: P,
+//    client: C,
+//}
 
 pub trait PubSubClient {
     /// Start connecting to the message broker.

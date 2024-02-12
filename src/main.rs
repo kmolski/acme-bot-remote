@@ -10,6 +10,7 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+use crate::player::snapshot::{PlayerModel, PlayerSnapshot, TrackSnapshot};
 use crate::player::PubSubClient;
 use crate::stomp::{StompClient, StompUrl};
 
@@ -23,6 +24,7 @@ enum MessageType {
     Pause,
     Stop,
     Clear,
+    Move,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -31,10 +33,41 @@ struct Message {
     code: String,
 }
 
+#[derive(Serialize, Deserialize)]
+struct MoveMessage {
+    op: MessageType,
+    code: String,
+    offset: usize,
+    id: String,
+}
+
 fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &Arc<Mutex<StompClient>>) {
     let command = Message {
         op,
         code: access_code.to_string(),
+    };
+    let msg = serde_json::to_string(&command).unwrap();
+    if let Err(e) = client
+        .lock()
+        .unwrap()
+        .publish(&msg, &format!("/exchange/acme_bot_remote/{remote_id}"))
+    {
+        logging::warn!("Could not send command: {e:?}")
+    }
+}
+
+fn publish_move(
+    offset: usize,
+    id: &str,
+    access_code: &str,
+    remote_id: &str,
+    client: &Arc<Mutex<StompClient>>,
+) {
+    let command = MoveMessage {
+        op: MessageType::Move,
+        code: access_code.to_string(),
+        offset,
+        id: id.to_string(),
     };
     let msg = serde_json::to_string(&command).unwrap();
     if let Err(e) = client
@@ -62,9 +95,10 @@ fn Player() -> impl IntoView {
     url.set_username("").unwrap();
     url.set_password(None).unwrap();
 
-    let (tracks, _set_tracks) = create_signal(String::new());
+    let (snapshot, set_snapshot) = create_signal(None::<PlayerModel>);
     let remote_url = StompUrl::new(url.as_str()).unwrap();
     let exchange = format!("/exchange/acme_bot_remote_update/{remote_id}.{access_code}");
+    let (tracks, set_tracks) = create_signal(String::new());
     let client: Arc<Mutex<StompClient>> = Arc::new_cyclic(|weak_ref: &Weak<Mutex<StompClient>>| {
         let weak = weak_ref.clone();
         Mutex::new(StompClient::new(
@@ -79,7 +113,11 @@ fn Player() -> impl IntoView {
                         if let Err(e) = client.subscribe(
                             move |m| {
                                 logging::log!("Message received: {}", m);
-                                _set_tracks.set(m);
+                                match serde_json::from_str(&m) {
+                                    Ok(p) => set_snapshot.set(Some(p)),
+                                    Err(e) => logging::error!("Invalid snapshot: {}", e),
+                                }
+                                set_tracks.set(m);
                             },
                             &exchange,
                         ) {
@@ -124,6 +162,23 @@ fn Player() -> impl IntoView {
             let client = client.clone();
             move |_| { publish(MessageType::Clear, &access_code, &remote_id, &client); }}>
             "Clear"
+        </button>
+        <button on:click={
+            let access_code = access_code.clone();
+            let remote_id = remote_id.clone();
+            let client = client.clone();
+            move |_| {
+                let idx = snapshot.get().unwrap().queue().len() - 1;
+                publish_move(idx, snapshot.get().unwrap().queue().get(idx).unwrap().id(), &access_code, &remote_id, &client);
+            }}>
+            "Previous"
+        </button>
+        <button on:click={
+            let access_code = access_code.clone();
+            let remote_id = remote_id.clone();
+            let client = client.clone();
+            move |_| { publish_move(1, snapshot.get().unwrap().queue().get(1).unwrap().id(), &access_code, &remote_id, &client); }}>
+            "Next"
         </button>
     }
 }

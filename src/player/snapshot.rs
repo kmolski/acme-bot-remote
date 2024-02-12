@@ -14,8 +14,8 @@ pub trait PlayerSnapshot {
     /// Get the current state of the player.
     fn state(&self) -> MusicPlayerState;
 
-    /// Get an iterator over the current queue contents.
-    fn queue(&self) -> impl Iterator<Item = &impl TrackSnapshot>;
+    /// Get the contents of the queue.
+    fn queue(&self) -> &[impl TrackSnapshot];
 }
 
 /// State set for the music player.
@@ -71,8 +71,8 @@ impl PlayerSnapshot for PlayerModel {
         }
     }
 
-    fn queue(&self) -> impl Iterator<Item = &impl TrackSnapshot> {
-        self.queue.iter()
+    fn queue(&self) -> &[impl TrackSnapshot] {
+        self.queue.as_slice()
     }
 }
 
