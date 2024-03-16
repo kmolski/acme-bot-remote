@@ -3,12 +3,12 @@
 
 use thiserror::Error;
 
-pub struct MusicPlayer<P: PlayerSnapshot, C: PubSubClient> {
-    access_code: String,
-    remote_id: String,
-    snapshot: P,
-    client: C,
-}
+// pub struct MusicPlayer<P: PlayerSnapshot, C: PubSubClient> {
+//     access_code: String,
+//     remote_id: String,
+//     snapshot: P,
+//     client: C,
+// }
 
 pub trait PlayerSnapshot {
     /// Check if queue loop is enabled.

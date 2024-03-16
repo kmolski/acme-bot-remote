@@ -10,7 +10,7 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::player::{MusicPlayerState, PlayerSnapshot, PubSubClient, TrackSnapshot};
+use crate::player::{PlayerSnapshot, PubSubClient, TrackSnapshot};
 use crate::remote_api::PlayerModel;
 use crate::stomp::{StompClient, StompUrl};
 
