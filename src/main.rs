@@ -10,11 +10,12 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::player::snapshot::{PlayerModel, PlayerSnapshot, TrackSnapshot};
-use crate::player::PubSubClient;
+use crate::player::{MusicPlayerState, PlayerSnapshot, PubSubClient, TrackSnapshot};
+use crate::remote_api::PlayerModel;
 use crate::stomp::{StompClient, StompUrl};
 
 mod player;
+mod remote_api;
 mod stomp;
 
 #[derive(Serialize, Deserialize)]
@@ -25,6 +26,7 @@ enum MessageType {
     Stop,
     Clear,
     Move,
+    Loop,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -39,6 +41,13 @@ struct MoveMessage {
     code: String,
     offset: usize,
     id: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct LoopMessage {
+    op: MessageType,
+    code: String,
+    enabled: bool,
 }
 
 fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &Arc<Mutex<StompClient>>) {
@@ -68,6 +77,27 @@ fn publish_move(
         code: access_code.to_string(),
         offset,
         id: id.to_string(),
+    };
+    let msg = serde_json::to_string(&command).unwrap();
+    if let Err(e) = client
+        .lock()
+        .unwrap()
+        .publish(&msg, &format!("/exchange/acme_bot_remote/{remote_id}"))
+    {
+        logging::warn!("Could not send command: {e:?}")
+    }
+}
+
+fn publish_loop(
+    loop_enabled: bool,
+    access_code: &str,
+    remote_id: &str,
+    client: &Arc<Mutex<StompClient>>,
+) {
+    let command = LoopMessage {
+        op: MessageType::Loop,
+        code: access_code.to_string(),
+        enabled: loop_enabled,
     };
     let msg = serde_json::to_string(&command).unwrap();
     if let Err(e) = client
@@ -142,6 +172,19 @@ fn Player() -> impl IntoView {
 
     view! {
         <div>{move || tracks.get()}</div>
+        <div>
+            <input type="checkbox" id="loop"
+                checked=move || {
+                    let snap = snapshot.get();
+                    snap.as_ref().map(PlayerSnapshot::loop_enabled).unwrap_or(false)
+                }
+                on:change={
+                    let access_code = access_code.clone();
+                    let remote_id = remote_id.clone();
+                    let client = client.clone();
+                    move |e| { publish_loop(event_target_checked(&e), &access_code, &remote_id, &client); }}/>
+            <label for="loop">"Loop"</label>
+        </div>
         <button on:click={
             let access_code = access_code.clone();
             let remote_id = remote_id.clone();
