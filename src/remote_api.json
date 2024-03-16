@@ -145,20 +145,6 @@
           "title": "Title",
           "type": "string"
         },
-        "entries": {
-          "anyOf": [
-            {
-              "items": {
-                "$ref": "#/$defs/QueueEntry"
-              },
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Entries"
-        },
         "uploader": {
           "title": "Uploader",
           "type": "string"

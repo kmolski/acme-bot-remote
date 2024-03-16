@@ -4,51 +4,7 @@
 use serde::{Deserialize, Serialize};
 use typify::import_types;
 
-pub trait PlayerSnapshot {
-    /// Check if queue loop is enabled.
-    fn loop_enabled(&self) -> bool;
-
-    /// Get the current volume level, from 0 to 100.
-    fn volume(&self) -> u8;
-
-    /// Get the current state of the player.
-    fn state(&self) -> MusicPlayerState;
-
-    /// Get the contents of the queue.
-    fn queue(&self) -> &[impl TrackSnapshot];
-}
-
-/// State set for the music player.
-pub enum MusicPlayerState {
-    Idle,
-    Playing,
-    Paused,
-    Stopped,
-    Disconnected,
-}
-
-pub trait TrackSnapshot {
-    /// Get the unique identifier of the track.
-    fn id(&self) -> &str;
-
-    /// Get the track title.
-    fn title(&self) -> &str;
-
-    /// Get the uploader of the track.
-    fn uploader(&self) -> &str;
-
-    /// Get the duration of the track in seconds.
-    fn duration(&self) -> f64;
-
-    /// Get the track URL.
-    fn webpage_url(&self) -> &str;
-
-    /// Get the track uploader URL as an optional string.
-    fn uploader_url(&self) -> Option<&str>;
-
-    /// Get the track thumbnail URL as an optional string.
-    fn thumbnail(&self) -> Option<&str>;
-}
+use crate::player::{MusicPlayerState, PlayerSnapshot, TrackSnapshot};
 
 import_types!("src/remote_api.json");
 
