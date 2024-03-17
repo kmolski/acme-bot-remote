@@ -174,7 +174,7 @@ fn Player() -> impl IntoView {
         <div>{move || tracks.get()}</div>
         <div>
             <input type="checkbox" id="loop"
-                checked=move || {
+                prop:checked=move || {
                     let snap = snapshot.get();
                     snap.as_ref().map(PlayerSnapshot::loop_enabled).unwrap_or(false)
                 }
