@@ -27,6 +27,7 @@ enum MessageType {
     Clear,
     Move,
     Loop,
+    Volume,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -48,6 +49,13 @@ struct LoopMessage {
     op: MessageType,
     code: String,
     enabled: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+struct VolumeMessage {
+    op: MessageType,
+    code: String,
+    value: u8,
 }
 
 fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &Arc<Mutex<StompClient>>) {
@@ -98,6 +106,22 @@ fn publish_loop(
         op: MessageType::Loop,
         code: access_code.to_string(),
         enabled: loop_enabled,
+    };
+    let msg = serde_json::to_string(&command).unwrap();
+    if let Err(e) = client
+        .lock()
+        .unwrap()
+        .publish(&msg, &format!("/exchange/acme_bot_remote/{remote_id}"))
+    {
+        logging::warn!("Could not send command: {e:?}")
+    }
+}
+
+fn publish_volume(volume: u8, access_code: &str, remote_id: &str, client: &Arc<Mutex<StompClient>>) {
+    let command = VolumeMessage {
+        op: MessageType::Volume,
+        code: access_code.to_string(),
+        value: volume,
     };
     let msg = serde_json::to_string(&command).unwrap();
     if let Err(e) = client
@@ -173,6 +197,7 @@ fn Player() -> impl IntoView {
     view! {
         <div>{move || tracks.get()}</div>
         <div>
+            <label for="loop">"Loop"</label>
             <input type="checkbox" id="loop"
                 prop:checked=move || {
                     let snap = snapshot.get();
@@ -183,7 +208,17 @@ fn Player() -> impl IntoView {
                     let remote_id = remote_id.clone();
                     let client = client.clone();
                     move |e| { publish_loop(event_target_checked(&e), &access_code, &remote_id, &client); }}/>
-            <label for="loop">"Loop"</label>
+            <label for="volume">"Volume"</label>
+            <input type="range" id="volume" min="0" max="100" step="1"
+                prop:value=move || {
+                    let snap = snapshot.get();
+                    snap.as_ref().map(PlayerSnapshot::volume).unwrap_or(0)
+                }
+                on:change={
+                    let access_code = access_code.clone();
+                    let remote_id = remote_id.clone();
+                    let client = client.clone();
+                    move |e| { publish_volume(event_target_value(&e).parse().unwrap(), &access_code, &remote_id, &client); }}/>
         </div>
         <button on:click={
             let access_code = access_code.clone();
