@@ -117,7 +117,12 @@ fn publish_loop(
     }
 }
 
-fn publish_volume(volume: u8, access_code: &str, remote_id: &str, client: &Arc<Mutex<StompClient>>) {
+fn publish_volume(
+    volume: u8,
+    access_code: &str,
+    remote_id: &str,
+    client: &Arc<Mutex<StompClient>>,
+) {
     let command = VolumeMessage {
         op: MessageType::Volume,
         code: access_code.to_string(),
