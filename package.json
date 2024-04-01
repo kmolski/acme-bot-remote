@@ -8,6 +8,6 @@
     "@stomp/stompjs": "^7.0.0"
   },
   "devDependencies": {
-    "esbuild": "^0.20.1"
+    "esbuild": "^0.20.2"
   }
 }
