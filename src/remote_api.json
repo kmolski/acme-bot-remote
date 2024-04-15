@@ -5,7 +5,8 @@
       "properties": {
         "op": {
           "const": "clear",
-          "title": "Op"
+          "title": "Op",
+          "type": "string"
         },
         "code": {
           "title": "Code",
@@ -24,7 +25,8 @@
       "properties": {
         "op": {
           "const": "loop",
-          "title": "Op"
+          "title": "Op",
+          "type": "string"
         },
         "code": {
           "title": "Code",
@@ -48,7 +50,8 @@
       "properties": {
         "op": {
           "const": "move",
-          "title": "Op"
+          "title": "Op",
+          "type": "string"
         },
         "code": {
           "title": "Code",
@@ -77,7 +80,8 @@
       "properties": {
         "op": {
           "const": "pause",
-          "title": "Op"
+          "title": "Op",
+          "type": "string"
         },
         "code": {
           "title": "Code",
@@ -173,6 +177,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Uploader Url"
         },
         "duration_string": {
@@ -188,6 +193,7 @@
               "type": "null"
             }
           ],
+          "default": null,
           "title": "Thumbnail"
         },
         "extractor": {
@@ -195,6 +201,15 @@
           "type": "string"
         }
       },
+      "required": [
+        "id",
+        "title",
+        "uploader",
+        "duration",
+        "webpage_url",
+        "duration_string",
+        "extractor"
+      ],
       "title": "QueueEntry",
       "type": "object"
     },
@@ -246,7 +261,8 @@
       "properties": {
         "op": {
           "const": "remove",
-          "title": "Op"
+          "title": "Op",
+          "type": "string"
         },
         "code": {
           "title": "Code",
@@ -275,7 +291,8 @@
       "properties": {
         "op": {
           "const": "resume",
-          "title": "Op"
+          "title": "Op",
+          "type": "string"
         },
         "code": {
           "title": "Code",
@@ -294,7 +311,8 @@
       "properties": {
         "op": {
           "const": "stop",
-          "title": "Op"
+          "title": "Op",
+          "type": "string"
         },
         "code": {
           "title": "Code",
@@ -313,7 +331,8 @@
       "properties": {
         "op": {
           "const": "volume",
-          "title": "Op"
+          "title": "Op",
+          "type": "string"
         },
         "code": {
           "title": "Code",

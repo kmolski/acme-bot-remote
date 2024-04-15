@@ -34,27 +34,26 @@ impl PlayerSnapshot for PlayerModel {
 
 impl TrackSnapshot for QueueEntry {
     fn id(&self) -> &str {
-        self.id.as_deref().unwrap_or("id_unknown")
+        &self.id
     }
 
     fn title(&self) -> &str {
-        self.title.as_deref().unwrap_or("unknown")
+        &self.title
     }
 
     fn uploader(&self) -> &str {
-        self.uploader.as_deref().unwrap_or("unknown")
+        &self.uploader
     }
 
     fn duration(&self) -> f64 {
         match self.duration {
-            Some(Duration::Variant0(int)) => int as f64,
-            Some(Duration::Variant1(float)) => float,
-            _ => 0.0,
+            Duration::Variant0(int) => int as f64,
+            Duration::Variant1(float) => float,
         }
     }
 
     fn webpage_url(&self) -> &str {
-        self.webpage_url.as_deref().unwrap_or("javascript:void(0)")
+        &self.webpage_url
     }
 
     fn uploader_url(&self) -> Option<&str> {
