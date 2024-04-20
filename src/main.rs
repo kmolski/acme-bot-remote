@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::player::{PlayerSnapshot, PubSubClient, TrackSnapshot};
-use crate::remote_api::PlayerModel;
+use crate::remote_api::{PlayerModel, PlayerState};
 use crate::stomp::{StompClient, StompUrl};
 
 mod player;
@@ -154,10 +154,14 @@ fn Player() -> impl IntoView {
     url.set_username("").unwrap();
     url.set_password(None).unwrap();
 
-    let (snapshot, set_snapshot) = create_signal(None::<PlayerModel>);
+    let (snapshot, set_snapshot) = create_signal(PlayerModel {
+        loop_: true,
+        volume: 0,
+        state: PlayerState::Idle,
+        queue: vec![],
+    });
     let remote_url = StompUrl::new(url.as_str()).unwrap();
     let exchange = format!("/exchange/acme_bot_remote_update/{remote_id}.{access_code}");
-    let (tracks, set_tracks) = create_signal(String::new());
     let client: Arc<Mutex<StompClient>> = Arc::new_cyclic(|weak_ref: &Weak<Mutex<StompClient>>| {
         let weak = weak_ref.clone();
         Mutex::new(StompClient::new(
@@ -173,10 +177,9 @@ fn Player() -> impl IntoView {
                             move |m| {
                                 logging::log!("Message received: {}", m);
                                 match serde_json::from_str(&m) {
-                                    Ok(p) => set_snapshot.set(Some(p)),
+                                    Ok(p) => set_snapshot.set(p),
                                     Err(e) => logging::error!("Invalid snapshot: {}", e),
                                 }
-                                set_tracks.set(m);
                             },
                             &exchange,
                         ) {
@@ -204,10 +207,7 @@ fn Player() -> impl IntoView {
         <div>
             <label for="loop">"Loop"</label>
             <input type="checkbox" id="loop"
-                prop:checked=move || {
-                    let snap = snapshot.get();
-                    snap.as_ref().map(PlayerSnapshot::loop_enabled).unwrap_or(false)
-                }
+                prop:checked=move || { snapshot.get().loop_enabled() }
                 on:change={
                     let access_code = access_code.clone();
                     let remote_id = remote_id.clone();
@@ -215,10 +215,7 @@ fn Player() -> impl IntoView {
                     move |e| { publish_loop(event_target_checked(&e), &access_code, &remote_id, &client); }}/>
             <label for="volume">"Volume"</label>
             <input type="range" id="volume" min="0" max="100" step="1"
-                prop:value=move || {
-                    let snap = snapshot.get();
-                    snap.as_ref().map(PlayerSnapshot::volume).unwrap_or(0)
-                }
+                prop:value=move || { snapshot.get().volume() }
                 on:change={
                     let access_code = access_code.clone();
                     let remote_id = remote_id.clone();
@@ -251,8 +248,8 @@ fn Player() -> impl IntoView {
             let remote_id = remote_id.clone();
             let client = client.clone();
             move |_| {
-                let idx = snapshot.get().unwrap().queue().len() - 1;
-                publish_move(idx, snapshot.get().unwrap().queue().get(idx).unwrap().id(), &access_code, &remote_id, &client);
+                let idx = snapshot.get().queue().len() - 1;
+                publish_move(idx, snapshot.get().queue().get(idx).unwrap().id(), &access_code, &remote_id, &client);
             }}>
             "Previous"
         </button>
@@ -260,7 +257,7 @@ fn Player() -> impl IntoView {
             let access_code = access_code.clone();
             let remote_id = remote_id.clone();
             let client = client.clone();
-            move |_| { publish_move(1, snapshot.get().unwrap().queue().get(1).unwrap().id(), &access_code, &remote_id, &client); }}>
+            move |_| { publish_move(1, snapshot.get().queue().get(1).unwrap().id(), &access_code, &remote_id, &client); }}>
             "Next"
         </button>
     }
