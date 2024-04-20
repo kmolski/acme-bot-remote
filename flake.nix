@@ -20,6 +20,7 @@
           devShells.default = with pkgs; mkShell {
             buildInputs = [
               rustToolchain
+              dart-sass
               nodejs
               trunk
             ];

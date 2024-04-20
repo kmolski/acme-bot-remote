@@ -10,7 +10,7 @@ use thiserror::Error;
 //     client: C,
 // }
 
-pub trait PlayerSnapshot {
+pub trait PlayerSnapshot<T: TrackSnapshot> {
     /// Check if queue loop is enabled.
     fn loop_enabled(&self) -> bool;
 
@@ -21,7 +21,7 @@ pub trait PlayerSnapshot {
     fn state(&self) -> MusicPlayerState;
 
     /// Get the contents of the queue.
-    fn queue(&self) -> &[impl TrackSnapshot];
+    fn queue(&self) -> &[T];
 }
 
 /// State set for the music player.
@@ -33,7 +33,7 @@ pub enum MusicPlayerState {
     Disconnected,
 }
 
-pub trait TrackSnapshot {
+pub trait TrackSnapshot: Clone {
     /// Get the unique identifier of the track.
     fn id(&self) -> &str;
 
