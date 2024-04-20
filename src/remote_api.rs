@@ -8,7 +8,7 @@ use crate::player::{MusicPlayerState, PlayerSnapshot, TrackSnapshot};
 
 import_types!("src/remote_api.json");
 
-impl PlayerSnapshot for PlayerModel {
+impl PlayerSnapshot<QueueEntry> for PlayerModel {
     fn loop_enabled(&self) -> bool {
         self.loop_
     }
@@ -27,7 +27,7 @@ impl PlayerSnapshot for PlayerModel {
         }
     }
 
-    fn queue(&self) -> &[impl TrackSnapshot] {
+    fn queue(&self) -> &[QueueEntry] {
         self.queue.as_slice()
     }
 }

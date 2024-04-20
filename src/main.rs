@@ -203,7 +203,20 @@ fn Player() -> impl IntoView {
     }
 
     view! {
-        <div>{move || tracks.get()}</div>
+        <ul>
+            <For each=move || snapshot.with(|s| s.queue().to_vec())
+                 key=|entry| entry.id().to_string()
+                 children=move |entry| {
+                     view! {
+                         <li>
+                             <b>{ entry.title().to_string()}</b>
+                             {" by "}
+                             <b>{ entry.uploader().to_string() }</b>
+                         </li>
+                     }
+                 }
+            />
+        </ul>
         <div>
             <label for="loop">"Loop"</label>
             <input type="checkbox" id="loop"
