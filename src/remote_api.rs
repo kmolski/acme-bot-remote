@@ -32,6 +32,17 @@ impl PlayerSnapshot<QueueEntry> for PlayerModel {
     }
 }
 
+impl Default for PlayerModel {
+    fn default() -> Self {
+        PlayerModel {
+            loop_: true,
+            volume: 100,
+            state: PlayerState::Idle,
+            queue: vec![],
+        }
+    }
+}
+
 impl TrackSnapshot for QueueEntry {
     fn id(&self) -> &str {
         &self.id

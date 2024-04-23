@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::player::{PlayerSnapshot, PubSubClient, TrackSnapshot};
-use crate::remote_api::{PlayerModel, PlayerState};
+use crate::remote_api::PlayerModel;
 use crate::stomp::{StompClient, StompUrl};
 
 mod player;
@@ -154,12 +154,7 @@ fn Player() -> impl IntoView {
     url.set_username("").unwrap();
     url.set_password(None).unwrap();
 
-    let (snapshot, set_snapshot) = create_signal(PlayerModel {
-        loop_: true,
-        volume: 0,
-        state: PlayerState::Idle,
-        queue: vec![],
-    });
+    let (snapshot, set_snapshot) = create_signal::<PlayerModel>(Default::default());
     let remote_url = StompUrl::new(url.as_str()).unwrap();
     let exchange = format!("/exchange/acme_bot_remote_update/{remote_id}.{access_code}");
     let client: Arc<Mutex<StompClient>> = Arc::new_cyclic(|weak_ref: &Weak<Mutex<StompClient>>| {
@@ -204,14 +199,14 @@ fn Player() -> impl IntoView {
 
     view! {
         <ul>
-            <For each=move || snapshot.with(|s| s.queue().to_vec())
-                 key=|entry| entry.id().to_string()
+            <For each=move || snapshot.get().queue().to_vec()
+                 key=move |entry| entry.id().to_string()
                  children=move |entry| {
                      view! {
                          <li>
-                             <b>{ entry.title().to_string()}</b>
+                             <a href={ entry.webpage_url().to_string() }>{ entry.title().to_string() }</a>
                              {" by "}
-                             <b>{ entry.uploader().to_string() }</b>
+                             <a href={ entry.uploader_url().map(|s| s.to_string()) }>{ entry.uploader().to_string() }</a>
                          </li>
                      }
                  }
