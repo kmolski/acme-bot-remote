@@ -28,6 +28,7 @@ enum MessageType {
     Move,
     Loop,
     Volume,
+    Remove,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -76,12 +77,13 @@ fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &Arc<Mut
 fn publish_move(
     offset: usize,
     id: &str,
+    op: MessageType,
     access_code: &str,
     remote_id: &str,
     client: &Arc<Mutex<StompClient>>,
 ) {
     let command = MoveMessage {
-        op: MessageType::Move,
+        op,
         code: access_code.to_string(),
         offset,
         id: id.to_string(),
@@ -196,20 +198,31 @@ fn Player() -> impl IntoView {
             Err(e) => leptos::logging::warn!("{e:?}"),
         }
     }
-
     view! {
         <ul>
             <For each=move || snapshot.get().queue().to_vec()
                  key=move |entry| entry.id().to_string()
-                 children=move |entry| {
-                     view! {
-                         <li>
-                             <a href={ entry.webpage_url().to_string() }>{ entry.title().to_string() }</a>
-                             {" by "}
-                             <a href={ entry.uploader_url().map(|s| s.to_string()) }>{ entry.uploader().to_string() }</a>
-                         </li>
-                     }
-                 }
+                 children={
+                     let access_code = access_code.clone();
+                     let remote_id = remote_id.clone();
+                     let client = client.clone();
+                     move |entry| {
+                         let access_code = access_code.clone();
+                         let remote_id = remote_id.clone();
+                         let client = client.clone();
+                         view! {
+                             <li>
+                                 <a href={ entry.webpage_url().to_string() }>{ entry.title().to_string() }</a>
+                                 {" by "}
+                                 <a href={ entry.uploader_url().map(|s| s.to_string()) }>{ entry.uploader().to_string() }</a>
+                                 <button on:click=move |_| {
+                                     let idx = snapshot.get().queue().iter().position(|e| e.id() == entry.id()).unwrap();
+                                     publish_move(idx, entry.id(), MessageType::Remove, &access_code, &remote_id, &client); }>
+                                     "Delete"
+                                 </button>
+                             </li>
+                         }
+                 }}
             />
         </ul>
         <div>
@@ -257,7 +270,7 @@ fn Player() -> impl IntoView {
             let client = client.clone();
             move |_| {
                 let idx = snapshot.get().queue().len() - 1;
-                publish_move(idx, snapshot.get().queue().get(idx).unwrap().id(), &access_code, &remote_id, &client);
+                publish_move(idx, snapshot.get().queue().get(idx).unwrap().id(), MessageType::Move, &access_code, &remote_id, &client);
             }}>
             "Previous"
         </button>
@@ -265,7 +278,10 @@ fn Player() -> impl IntoView {
             let access_code = access_code.clone();
             let remote_id = remote_id.clone();
             let client = client.clone();
-            move |_| { publish_move(1, snapshot.get().queue().get(1).unwrap().id(), &access_code, &remote_id, &client); }}>
+            move |_| {
+                let idx = if snapshot.get().queue().len() == 1 { 0 } else { 1 };
+                publish_move(idx, snapshot.get().queue().get(idx).unwrap().id(), MessageType::Move, &access_code, &remote_id, &client);
+            }}>
             "Next"
         </button>
     }
