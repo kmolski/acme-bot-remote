@@ -24,6 +24,7 @@ pub trait PlayerSnapshot<T: TrackSnapshot> {
     fn queue(&self) -> &[T];
 }
 
+#[derive(Eq, PartialEq)]
 /// State set for the music player.
 pub enum MusicPlayerState {
     Idle,
