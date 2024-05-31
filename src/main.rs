@@ -146,7 +146,7 @@ fn publish_volume(
 #[component]
 fn DeleteIcon(frame: &'static str) -> impl IntoView {
     view! {
-        <svg class="svg-icon" viewBox={ frame }>
+        <svg class="svg-icon" aria-hidden="true" viewBox={ frame }>
             <path d="M 14.75 13 C 14.75 11.62 16.65 10.5 19 10.5 C 21.35 10.5 23.25 11.62 23.25 13" fill="none" stroke="#000000" stroke-width="1" stroke-miterlimit="10"/>
             <path d="M 12.5 28 L 14 14.75 L 24 14.75 L 25.5 28 Z" fill="#000000" transform="rotate(-180,19,21.38)"/>
             <rect x="12" y="12.5" width="14" height="1" rx="0.06" ry="0.06" fill="#000000" stroke="#000000"/>
@@ -157,7 +157,7 @@ fn DeleteIcon(frame: &'static str) -> impl IntoView {
 #[component]
 fn PreviousIcon(frame: &'static str) -> impl IntoView {
     view! {
-        <svg class="svg-icon" viewBox={ frame }>
+        <svg class="svg-icon" aria-hidden="true" viewBox={ frame }>
             <rect x="13" y="9" width="4" height="20" fill="#000000"/>
             <path d="M 25 9 L 13 19 L 25 29 Z" fill="#000000"/>
         </svg>
@@ -167,7 +167,7 @@ fn PreviousIcon(frame: &'static str) -> impl IntoView {
 #[component]
 fn NextIcon(frame: &'static str) -> impl IntoView {
     view! {
-        <svg class="svg-icon" viewBox={ frame }>
+        <svg class="svg-icon" aria-hidden="true" viewBox={ frame }>
             <rect x="21" y="9" width="4" height="20" fill="#000000"/>
             <path d="M 13 9 L 25 19 L 13 29 Z" fill="#000000"/>
         </svg>
@@ -177,7 +177,7 @@ fn NextIcon(frame: &'static str) -> impl IntoView {
 #[component]
 fn PlayIcon(frame: &'static str) -> impl IntoView {
     view! {
-        <svg class="svg-icon" viewBox={ frame }>
+        <svg class="svg-icon" aria-hidden="true" viewBox={ frame }>
             <path d="M 13 9 L 28 19 L 13 29 Z" fill="#000000"/>
         </svg>
     }
@@ -186,7 +186,7 @@ fn PlayIcon(frame: &'static str) -> impl IntoView {
 #[component]
 fn PauseIcon(frame: &'static str) -> impl IntoView {
     view! {
-        <svg class="svg-icon" viewBox={ frame }>
+        <svg class="svg-icon" aria-hidden="true" viewBox={ frame }>
             <rect x="13" y="9" width="4" height="20" fill="#000000"/>
             <rect x="21" y="9" width="4" height="20" fill="#000000"/>
         </svg>
@@ -196,7 +196,7 @@ fn PauseIcon(frame: &'static str) -> impl IntoView {
 #[component]
 fn LoopIcon(frame: &'static str) -> impl IntoView {
     view! {
-        <svg class="svg-icon" viewBox={ frame }>
+        <svg class="svg-icon" aria-hidden="true" viewBox={ frame }>
             <path d="M 20.15 26.5 L 17.15 28 L 17.15 25 Z" fill="#000000" stroke="#000000" stroke-width="3" stroke-miterlimit="10"/>
             <path d="M 26.5 26.5 L 26.5 11.5 L 11.5 11.5 L 11.5 26.5 L 17.15 26.5" fill="none" stroke="#000000" stroke-width="3"/>
         </svg>
@@ -206,7 +206,7 @@ fn LoopIcon(frame: &'static str) -> impl IntoView {
 #[component]
 fn VolumeIcon(value: Signal<u8>) -> impl IntoView {
     view! {
-        <svg width="22px" height="22px" viewBox="0 0 22 20">
+        <svg width="1.3em" height="1.3em" aria-hidden="true" viewBox="0 0 22 20">
             <path d="M -3 16 L 2 4 L 9 4 L 14 16 Z" fill="#000000" stroke="none" transform="rotate(-90,5.5,10)"/>
             <path d="M 13 9.2 L 16.2 9.2 L 16.2 6 L 17.8 6 L 17.8 9.2 L 21 9.2 L 21 10.8 L 17.8 10.8 L 17.8 14 L 16.2 14 L 16.2 10.8 L 13 10.8 Z" transform="rotate(-45,17,10)"
                 fill=move || { if value.get() == 0 { "#000000" } else { "none" }}/>
