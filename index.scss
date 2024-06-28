@@ -1,25 +1,82 @@
-@import url("https://fonts.googleapis.com/css2?family=Public+Sans:wght@100..900&display=swap");
-
-$border: 2px solid black;
-
-body {
-  font-family: "Public Sans", sans-serif;
-  font-size: 16px;
-  background-color: #FFF4E0;
-  color: #000000;
+@font-face {
+  font-family: 'Public Sans';
+  font-display: swap;
+  src: url(./PublicSans-df270da50e1ae431.woff2) format('woff2');
 }
 
-.track, .controls, .volume-widget {
+@counter-style decimal-only {
+  system: numeric;
+  symbols: "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
+  suffix: "  ";
+}
+
+$accent-color: #fd9745;
+$active-color: #e6dcca;
+$main-color: #fff4e0;
+$text-color: #000;
+
+$border: 2px solid $text-color;
+
+html {
+  box-sizing: border-box;
+  height: 100%;
+}
+
+body {
+  background-color: $main-color;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  font-family: "Public Sans", sans-serif;
+  font-size: 16px;
+  color: $text-color;
+}
+
+* {
+  box-sizing: inherit;
+}
+
+.container {
+  display: grid;
+  height: 100%;
+  grid-template-rows: auto minmax(180px, 1fr) auto;
+}
+
+.header {
+  border-bottom: $border;
+  padding: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: $main-color;
+  border-top: $border;
+  padding: 0.5rem;
+}
+
+.track-list {
+  contain: layout;
+  overflow-y: auto;
+}
+
+.track,
+.controls,
+.volume-widget {
   display: inline-flex;
   align-items: center;
 }
 
-.track-card, .volume-widget {
+.track,
+.volume-widget {
   flex-grow: 1;
   flex-basis: 0;
 }
 
-.track-card {
+.track {
   justify-content: flex-start;
 }
 
@@ -27,37 +84,22 @@ body {
   justify-content: flex-end;
 }
 
-.top-bar {
-  font-size: 1.25rem;
-  font-weight: 600;
-  padding-bottom: 0.5rem;
-  border-bottom: $border;
-  position: sticky;
-  width: 100%;
-  left: 0px;
-  top: 0px;
+ol {
+  margin: 0;
+  list-style: decimal-only;
 }
 
-.bottom-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem;
-  border-top: $border;
-  position: fixed;
-  width: 100%;
-  bottom: 0px;
-  left: 0px;
+li > .track {
+  vertical-align: middle;
 }
 
-.track:hover {
-  background-color: #e6dcca;
+li > .track:hover {
+  background-color: $active-color;
 }
 
 a {
   text-decoration: none;
-  font-weight: 600;
-  color: #000000;
+  color: $text-color;
 }
 
 a[href]:hover {
@@ -65,8 +107,8 @@ a[href]:hover {
 }
 
 input[type = "range"] {
-  -webkit-appearance: none;
-  background-color: #FD9745;
+  appearance: none;
+  background-color: $accent-color;
   border-radius: 0.25rem;
   height: 0.25rem;
   width: 8rem;
@@ -85,9 +127,9 @@ input[type = "range"]::-moz-range-track {
 }
 
 input[type = "range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
+  appearance: none;
   box-sizing: content-box;
-  background-color: #000000;
+  background-color: $text-color;
   border: $border;
   border-radius: 0.5rem;
   height: 0.5rem;
@@ -97,7 +139,7 @@ input[type = "range"]::-webkit-slider-thumb {
 }
 
 input[type = "range"]::-moz-range-thumb {
-  background-color: #000000;
+  background-color: $text-color;
   border: $border;
   border-radius: 0.5rem;
   height: 0.5rem;
@@ -106,33 +148,33 @@ input[type = "range"]::-moz-range-thumb {
 
 .btn-round {
   box-sizing: border-box;
-  background-color: #FD9745;
+  background-color: $accent-color;
   border: $border;
   border-radius: 1.5rem;
   text-align: center;
   margin: 0.25rem;
-  padding: 0px;
+  padding: 0;
   height: 3rem;
   width: 3rem;
 }
 
 .btn-round > input[type = "checkbox"] {
   appearance: none;
-  margin: 0px;
+  margin: 0;
 }
 
-.btn-round:has(input[type = "checkbox"]:not(:checked)), .btn-round:disabled {
-  background-color: #FFF4E0;
+.btn-round:disabled,
+.btn-round:has(input[type = "checkbox"]:not(:checked)) {
+  background-color: $main-color;
 }
 
 .btn-inline {
   background: none;
-  border: none;
+  border: 0;
   text-align: center;
-  height: 1rem;
-  width: 1rem;
-  padding: 0px;
-  margin: 0px;
+  width: 1.3em;
+  padding: 0;
+  margin-right: 0.25rem;
   vertical-align: middle;
 }
 

@@ -143,6 +143,25 @@ fn publish_volume(
     }
 }
 
+use std::time::Duration;
+
+fn format_duration(duration: &Duration) -> String {
+    let mut formatted = String::new();
+    let mut sec = duration.as_secs();
+    let mut min = sec / 60;
+    sec %= 60;
+    let hrs = min / 60;
+    min %= 60;
+    if hrs > 0 {
+        formatted.push_str(&format!("{hrs}:"));
+        formatted.push_str(&format!("{min:02}:"));
+    } else {
+        formatted.push_str(&format!("{min}:"));
+    }
+    formatted.push_str(&format!("{sec:02}"));
+    formatted
+}
+
 #[component]
 fn DeleteIcon(frame: &'static str) -> impl IntoView {
     view! {
@@ -219,6 +238,19 @@ fn VolumeIcon(value: Signal<u8>) -> impl IntoView {
 }
 
 #[component]
+fn TrackCard<T: TrackSnapshot + Clone + 'static>(track: MaybeSignal<T>) -> impl IntoView {
+    view! {
+        <div style="display: flex; white-space: nowrap">
+            <img src={ track.get().thumbnail().map(|s| s.to_string()) } style="height: 2.5rem; width: 2.5rem; border-radius: 0.25rem; object-fit: cover; margin-right: 0.5rem"/>
+            <div style="display: flex; flex-direction: column; padding-right: 2rem">
+                <a href={ track.get().webpage_url().to_string() } target="_blank" style="font-weight: 600">{ track.get().title().to_string() }</a>
+                <a href={ track.get().uploader_url().map(|s| s.to_string()) } target="_blank">{ track.get().uploader().to_string() }</a>
+            </div>
+        </div>
+    }
+}
+
+#[component]
 fn Player() -> impl IntoView {
     let query_params = use_query_map().get_untracked();
     let access_code = Rc::new(query_params.get("ac").unwrap().to_string());
@@ -263,6 +295,7 @@ fn Player() -> impl IntoView {
                         if let Err(e) = client.publish("", &exchange) {
                             leptos::logging::warn!("{e:?}");
                         }
+                        logging::log!("connected: {}", client.subscribed());
                         logging::log!("DONE!");
                     }
                 }
@@ -276,127 +309,148 @@ fn Player() -> impl IntoView {
             Err(e) => leptos::logging::warn!("{e:?}"),
         }
     }
-    let s = snapshot.clone();
+    let s = snapshot;
     view! {
-        <div class="top-bar">Next up</div>
-        <ol>
-            <For each=move || snapshot.get().queue().to_vec()
-                 key=move |entry| entry.id().to_string()
-                 children={
-                    let access_code = access_code.clone();
-                    let remote_id = remote_id.clone();
-                    let client = client.clone();
-                    move |entry| {
+        <div class="container">
+            <header class="header">
+                <span>Next up</span>
+            </header>
+            <main class="track-list">
+                <ol>
+                    <For each=move || snapshot.get().queue().to_vec()
+                         key=move |entry| entry.id().to_string()
+                         children={
+                            let access_code = access_code.clone();
+                            let remote_id = remote_id.clone();
+                            let client = client.clone();
+                            move |entry| {
+                                let access_code = access_code.clone();
+                                let remote_id = remote_id.clone();
+                                let client = client.clone();
+                                view! {
+                                    <li>
+                                        <div class="track" style="width: 100%; align-items: center; border-radius: 0.25rem; padding: 0.25rem; justify-content: space-between; contain: inline-size">
+                                            <div style="display: inline-flex; mask-image: linear-gradient(0.75turn, transparent, #fff4e0 2rem); overflow: hidden">
+                                                <TrackCard track=entry.clone().into()/>
+                                            </div>
+                                            <div style="display: inline-flex">
+                                                <span style="margin-right: 0.5rem">{ format_duration(&entry.duration()) }</span>
+                                                <button class="btn-inline" on:click={
+                                                        let access_code = access_code.clone();
+                                                        let remote_id = remote_id.clone();
+                                                        let client = client.clone();
+                                                        let entry = entry.clone();
+                                                        move |_| {
+                                                        let idx = snapshot.get().queue().iter().position(|e| e.id() == entry.id()).unwrap();
+                                                        publish_move(idx, entry.id(), MessageType::Move, &access_code, &remote_id, &client); }}>
+                                                    <PlayIcon frame=ICON_FRAME_SMALL/>
+                                                    <span class="screenreader-only">Play</span>
+                                                </button>
+                                                <button class="btn-inline" on:click={
+                                                        let access_code = access_code.clone();
+                                                        let remote_id = remote_id.clone();
+                                                        let client = client.clone();
+                                                        let entry = entry.clone();
+                                                        move |_| {
+                                                        let idx = snapshot.get().queue().iter().position(|e| e.id() == entry.id()).unwrap();
+                                                        publish_move(idx, entry.id(), MessageType::Remove, &access_code, &remote_id, &client); }}>
+                                                    <DeleteIcon frame=ICON_FRAME_SMALL/>
+                                                    <span class="screenreader-only">Remove</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                         }}
+                    />
+                </ol>
+            </main>
+            <footer class="footer">
+                <div class="track" style="mask-image: linear-gradient(0.75turn, transparent, #fff4e0 2rem); contain: inline-size; overflow: hidden">
+                    {move || {
+                        if !s.get().queue().is_empty() {
+                            Some(
+                                view! {
+                                    <TrackCard track=MaybeSignal::derive(move || { let snap = s.get(); snap.queue().first().unwrap().clone() })/>
+                                }
+                            )
+                        } else {
+                            None
+                        }
+                    }}
+                </div>
+                <div class="controls">
+                    <button class="btn-round" on:click={
                         let access_code = access_code.clone();
                         let remote_id = remote_id.clone();
                         let client = client.clone();
-                        view! {
-                            <li>
-                                <div class="track">
-                                    <a href={ entry.webpage_url().to_string() }>{ entry.title().to_string() }</a>
-                                    {" by "}
-                                    <a href={ entry.uploader_url().map(|s| s.to_string()) }>{ entry.uploader().to_string() }</a>
-                                    <button class="btn-inline" on:click={
-                                            let access_code = access_code.clone();
-                                            let remote_id = remote_id.clone();
-                                            let client = client.clone();
-                                            let entry = entry.clone();
-                                            move |_| {
-                                            let idx = snapshot.get().queue().iter().position(|e| e.id() == entry.id()).unwrap();
-                                            publish_move(idx, entry.id(), MessageType::Move, &access_code, &remote_id, &client); }}>
-                                        <PlayIcon frame=ICON_FRAME_SMALL/>
-                                        <span class="screenreader-only">Play</span>
-                                    </button>
-                                    <button class="btn-inline" on:click={
-                                            let access_code = access_code.clone();
-                                            let remote_id = remote_id.clone();
-                                            let client = client.clone();
-                                            let entry = entry.clone();
-                                            move |_| {
-                                            let idx = snapshot.get().queue().iter().position(|e| e.id() == entry.id()).unwrap();
-                                            publish_move(idx, entry.id(), MessageType::Remove, &access_code, &remote_id, &client); }}>
-                                        <DeleteIcon frame=ICON_FRAME_SMALL/>
-                                        <span class="screenreader-only">Remove</span>
-                                    </button>
-                                </div>
-                            </li>
-                        }
-                 }}
-            />
-        </ol>
-        <div class="bottom-bar">
-            <div class="track-card">{move || { let snap = s.get(); snap.queue().get(0).map(|t| t.title()).unwrap_or("").to_string() }}</div>
-            <div class="controls">
-                <button class="btn-round" on:click={
-                    let access_code = access_code.clone();
-                    let remote_id = remote_id.clone();
-                    let client = client.clone();
-                    move |_| { publish(MessageType::Clear, &access_code, &remote_id, &client); }}>
-                    <DeleteIcon frame=ICON_FRAME_LARGE/>
-                    <span class="screenreader-only">Clear</span>
-                </button>
-                <button class="btn-round" on:click={
-                    let access_code = access_code.clone();
-                    let remote_id = remote_id.clone();
-                    let client = client.clone();
-                    move |_| {
-                        let idx = snapshot.get().queue().len() - 1;
-                        publish_move(idx, snapshot.get().queue().get(idx).unwrap().id(), MessageType::Move, &access_code, &remote_id, &client);
-                    }}>
-                    <PreviousIcon frame=ICON_FRAME_LARGE/>
-                    <span class="screenreader-only">Previous</span>
-                </button>
-                <button class="btn-round" on:click={
-                    let access_code = access_code.clone();
-                    let remote_id = remote_id.clone();
-                    let client = client.clone();
-                    move |_| {
-                        if s.get().state() == MusicPlayerState::Playing {
-                            publish(MessageType::Pause, &access_code, &remote_id, &client);
-                        } else {
-                            publish(MessageType::Resume, &access_code, &remote_id, &client);
-                        }
-                    }}>
-                    <Show when=move || { s.get().state() == MusicPlayerState::Playing }
-                          fallback=|| view! { <PlayIcon frame=ICON_FRAME_LARGE/> <span class="screenreader-only">Resume</span> }>
-                        <PauseIcon frame=ICON_FRAME_LARGE/>
-                        <span class="screenreader-only">Pause</span>
-                    </Show>
-                </button>
-                <button class="btn-round" on:click={
-                    let access_code = access_code.clone();
-                    let remote_id = remote_id.clone();
-                    let client = client.clone();
-                    move |_| {
-                        let idx = if snapshot.get().queue().len() == 1 { 0 } else { 1 };
-                        publish_move(idx, snapshot.get().queue().get(idx).unwrap().id(), MessageType::Move, &access_code, &remote_id, &client);
-                    }}>
-                    <NextIcon frame=ICON_FRAME_LARGE/>
-                    <span class="screenreader-only">Next</span>
-                </button>
-                <label class="btn-round">
-                    <input type="checkbox"
-                        prop:checked=move || { snapshot.get().loop_enabled() }
+                        move |_| { publish(MessageType::Clear, &access_code, &remote_id, &client); }}>
+                        <DeleteIcon frame=ICON_FRAME_LARGE/>
+                        <span class="screenreader-only">Clear queue</span>
+                    </button>
+                    <button class="btn-round" on:click={
+                        let access_code = access_code.clone();
+                        let remote_id = remote_id.clone();
+                        let client = client.clone();
+                        move |_| {
+                            let idx = snapshot.get().queue().len() - 1;
+                            publish_move(idx, snapshot.get().queue().get(idx).unwrap().id(), MessageType::Move, &access_code, &remote_id, &client);
+                        }}>
+                        <PreviousIcon frame=ICON_FRAME_LARGE/>
+                        <span class="screenreader-only">Previous track</span>
+                    </button>
+                    <button class="btn-round" on:click={
+                        let access_code = access_code.clone();
+                        let remote_id = remote_id.clone();
+                        let client = client.clone();
+                        move |_| {
+                            if s.get().state() == MusicPlayerState::Playing {
+                                publish(MessageType::Pause, &access_code, &remote_id, &client);
+                            } else {
+                                publish(MessageType::Resume, &access_code, &remote_id, &client);
+                            }
+                        }}>
+                        <Show when=move || { s.get().state() == MusicPlayerState::Playing }
+                              fallback=|| view! { <PlayIcon frame=ICON_FRAME_LARGE/> <span class="screenreader-only">Resume</span> }>
+                            <PauseIcon frame=ICON_FRAME_LARGE/>
+                            <span class="screenreader-only">Pause</span>
+                        </Show>
+                    </button>
+                    <button class="btn-round" on:click={
+                        let access_code = access_code.clone();
+                        let remote_id = remote_id.clone();
+                        let client = client.clone();
+                        move |_| {
+                            let idx = if snapshot.get().queue().len() == 1 { 0 } else { 1 };
+                            publish_move(idx, snapshot.get().queue().get(idx).unwrap().id(), MessageType::Move, &access_code, &remote_id, &client);
+                        }}>
+                        <NextIcon frame=ICON_FRAME_LARGE/>
+                        <span class="screenreader-only">Next track</span>
+                    </button>
+                    <label class="btn-round">
+                        <input type="checkbox"
+                            prop:checked=move || { snapshot.get().loop_enabled() }
+                            on:change={
+                                let access_code = access_code.clone();
+                                let remote_id = remote_id.clone();
+                                let client = client.clone();
+                                move |e| { publish_loop(event_target_checked(&e), &access_code, &remote_id, &client); }}/>
+                        <LoopIcon frame=ICON_FRAME_LARGE/>
+                        <span class="screenreader-only">Loop</span>
+                    </label>
+                </div>
+                <label class="volume-widget">
+                    <VolumeIcon value=Signal::derive(move || s.get().volume())/>
+                    <span class="screenreader-only">Volume</span>
+                    <input type="range" id="volume" min="0" max="100" step="1"
+                        prop:value=move || { snapshot.get().volume() }
                         on:change={
                             let access_code = access_code.clone();
                             let remote_id = remote_id.clone();
                             let client = client.clone();
-                            move |e| { publish_loop(event_target_checked(&e), &access_code, &remote_id, &client); }}/>
-                    <LoopIcon frame=ICON_FRAME_LARGE/>
-                    <span class="screenreader-only">Loop</span>
+                            move |e| { publish_volume(event_target_value(&e).parse().unwrap(), &access_code, &remote_id, &client); }}/>
                 </label>
-            </div>
-            <label class="volume-widget">
-                <VolumeIcon value=Signal::derive(move || s.get().volume())/>
-                <input type="range" id="volume" min="0" max="100" step="1"
-                    prop:value=move || { snapshot.get().volume() }
-                    on:change={
-                        let access_code = access_code.clone();
-                        let remote_id = remote_id.clone();
-                        let client = client.clone();
-                        move |e| { publish_volume(event_target_value(&e).parse().unwrap(), &access_code, &remote_id, &client); }}/>
-                <span class="screenreader-only">Volume</span>
-            </label>
+            </footer>
         </div>
     }
 }
