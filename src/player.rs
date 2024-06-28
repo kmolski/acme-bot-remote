@@ -1,6 +1,7 @@
 // Copyright (C) 2024  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::time::Duration;
 use thiserror::Error;
 
 // pub struct MusicPlayer<P: PlayerSnapshot, C: PubSubClient> {
@@ -25,6 +26,7 @@ pub trait PlayerSnapshot<T: TrackSnapshot> {
 }
 
 /// State set for the music player.
+#[derive(Eq, PartialEq)]
 pub enum MusicPlayerState {
     Idle,
     Playing,
@@ -33,7 +35,7 @@ pub enum MusicPlayerState {
     Disconnected,
 }
 
-pub trait TrackSnapshot: Clone {
+pub trait TrackSnapshot {
     /// Get the unique identifier of the track.
     fn id(&self) -> &str;
 
@@ -43,8 +45,8 @@ pub trait TrackSnapshot: Clone {
     /// Get the uploader of the track.
     fn uploader(&self) -> &str;
 
-    /// Get the duration of the track in seconds.
-    fn duration(&self) -> f64;
+    /// Get the duration of the track.
+    fn duration(&self) -> Duration;
 
     /// Get the track URL.
     fn webpage_url(&self) -> &str;

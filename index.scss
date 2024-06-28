@@ -1,48 +1,196 @@
-body {
-  background-color: #000;
-  color: #fff;
-  font-family: 'Arial', sans-serif;
+@font-face {
+  font-family: 'Public Sans';
+  font-display: swap;
+  src: url(./PublicSans-df270da50e1ae431.woff2) format('woff2');
 }
 
-.music-player {
-  max-width: 400px;
-  margin: auto;
-  border: 1px solid #333;
+@counter-style decimal-only {
+  system: numeric;
+  symbols: "0" "1" "2" "3" "4" "5" "6" "7" "8" "9";
+  suffix: "  ";
+}
+
+$accent-color: #fd9745;
+$active-color: #e6dcca;
+$main-color: #fff4e0;
+$text-color: #000;
+
+$border: 2px solid $text-color;
+
+html {
+  box-sizing: border-box;
+  height: 100%;
+}
+
+body {
+  background-color: $main-color;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  font-family: "Public Sans", sans-serif;
+  font-size: 16px;
+  color: $text-color;
+}
+
+* {
+  box-sizing: inherit;
+}
+
+.container {
+  display: grid;
+  height: 100%;
+  grid-template-rows: auto minmax(180px, 1fr) auto;
+}
+
+.header {
+  border-bottom: $border;
+  padding: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: $main-color;
+  border-top: $border;
+  padding: 0.5rem;
 }
 
 .track-list {
-  max-height: 200px;
-  overflow-y: scroll;
-
-  .track {
-    padding: 10px 20px;
-    border-bottom: 1px solid #333;
-
-    &:hover {
-      background-color: #222;
-    }
-
-    .track-name {
-      font-weight: bold;
-    }
-  }
+  contain: layout;
+  overflow-y: auto;
 }
 
-.controls {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 20px;
-  background-color: #111;
+.track,
+.controls,
+.volume-widget {
+  display: inline-flex;
+  align-items: center;
+}
 
-  .control-btn {
-    padding: 10px;
-    background-color: #333;
-    border: none;
-    color: #fff;
-    cursor: pointer;
+.track,
+.volume-widget {
+  flex-grow: 1;
+  flex-basis: 0;
+}
 
-    &:hover {
-      background-color: #555;
-    }
-  }
+.track {
+  justify-content: flex-start;
+}
+
+.volume-widget {
+  justify-content: flex-end;
+}
+
+ol {
+  margin: 0;
+  list-style: decimal-only;
+}
+
+li > .track {
+  vertical-align: middle;
+}
+
+li > .track:hover {
+  background-color: $active-color;
+}
+
+a {
+  text-decoration: none;
+  color: $text-color;
+}
+
+a[href]:hover {
+  text-decoration: underline;
+}
+
+input[type = "range"] {
+  appearance: none;
+  background-color: $accent-color;
+  border-radius: 0.25rem;
+  height: 0.25rem;
+  width: 8rem;
+}
+
+input[type = "range"]::-webkit-slider-runnable-track {
+  border: $border;
+  border-radius: 0.25rem;
+  height: 0.5rem;
+}
+
+input[type = "range"]::-moz-range-track {
+  border: $border;
+  border-radius: 0.25rem;
+  height: 0.25rem;
+}
+
+input[type = "range"]::-webkit-slider-thumb {
+  appearance: none;
+  box-sizing: content-box;
+  background-color: $text-color;
+  border: $border;
+  border-radius: 0.5rem;
+  height: 0.5rem;
+  width: 0.5rem;
+  position: relative;
+  top: -0.25rem;
+}
+
+input[type = "range"]::-moz-range-thumb {
+  background-color: $text-color;
+  border: $border;
+  border-radius: 0.5rem;
+  height: 0.5rem;
+  width: 0.5rem;
+}
+
+.btn-round {
+  box-sizing: border-box;
+  background-color: $accent-color;
+  border: $border;
+  border-radius: 1.5rem;
+  text-align: center;
+  margin: 0.25rem;
+  padding: 0;
+  height: 3rem;
+  width: 3rem;
+}
+
+.btn-round > input[type = "checkbox"] {
+  appearance: none;
+  margin: 0;
+}
+
+.btn-round:disabled,
+.btn-round:has(input[type = "checkbox"]:not(:checked)) {
+  background-color: $main-color;
+}
+
+.btn-inline {
+  background: none;
+  border: 0;
+  text-align: center;
+  width: 1.3em;
+  padding: 0;
+  margin-right: 0.25rem;
+  vertical-align: middle;
+}
+
+.svg-icon {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.svg-icon:active {
+  transform: scale(0.9);
+}
+
+.screenreader-only {
+  position: absolute;
+  overflow: hidden;
+  height: 1px;
+  width: 1px;
 }

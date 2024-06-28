@@ -56,10 +56,10 @@ impl TrackSnapshot for QueueEntry {
         &self.uploader
     }
 
-    fn duration(&self) -> f64 {
+    fn duration(&self) -> std::time::Duration {
         match self.duration {
-            Duration::Variant0(int) => int as f64,
-            Duration::Variant1(float) => float,
+            Duration::Variant0(int) => std::time::Duration::from_secs(int as u64),
+            Duration::Variant1(float) => std::time::Duration::from_secs_f64(float),
         }
     }
 
