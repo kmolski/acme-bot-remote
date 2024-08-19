@@ -215,13 +215,10 @@ mod tests {
 
     #[test]
     fn new_from_invalid_url_returns_error() {
-        // given
         let url = "foobarbaz";
 
-        // when
         let result = StompUrl::new(url);
 
-        // then
         assert!(result.is_err());
         assert_eq!(
             result.err().unwrap(),
@@ -231,39 +228,30 @@ mod tests {
 
     #[test]
     fn new_from_invalid_scheme_returns_error() {
-        // given
         let url = "http://example.com";
 
-        // when
         let result = StompUrl::new(url);
 
-        // then
         assert!(result.is_err());
         assert_eq!(result.err().unwrap(), StompUrlError::InvalidScheme)
     }
 
     #[test]
     fn new_from_fragment_url_returns_error() {
-        // given
         let url = "wss://example.com/#fragment";
 
-        // when
         let result = StompUrl::new(url);
 
-        // then
         assert!(result.is_err());
         assert_eq!(result.err().unwrap(), StompUrlError::HasFragment)
     }
 
     #[test]
     fn new_from_valid_url_returns_ok() {
-        // given
         let url = "wss://example.com";
 
-        // when
         let result = StompUrl::new(url).unwrap();
 
-        // then
         assert_eq!(result.0.as_str(), "wss://example.com/");
     }
 }
