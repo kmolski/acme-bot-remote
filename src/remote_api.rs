@@ -40,7 +40,7 @@ impl Default for PlayerModel {
             position: 0,
             state: PlayerState::Idle,
             queue: vec![],
-            current: None
+            current: None,
         }
     }
 }
