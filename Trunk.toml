@@ -2,7 +2,7 @@
 ignore = ["dist_js"]
 
 [tools]
-sass = "1.77.4"
+sass = "1.77.6"
 
 [[hooks]]
 stage = "pre_build"

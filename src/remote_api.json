@@ -46,7 +46,7 @@
       "type": "object"
     },
     "MoveCommand": {
-      "description": "Move command to skip to an entry in the queue.",
+      "description": "Remote command to play a specific entry in the queue.",
       "properties": {
         "op": {
           "const": "move",
@@ -96,7 +96,7 @@
       "type": "object"
     },
     "PlayerModel": {
-      "description": "Data model for a MusicPlayer instance.",
+      "description": "Data model for a wavelink.Player instance.",
       "properties": {
         "loop": {
           "title": "Loop",
@@ -104,6 +104,10 @@
         },
         "volume": {
           "title": "Volume",
+          "type": "integer"
+        },
+        "position": {
+          "title": "Position",
           "type": "integer"
         },
         "state": {
@@ -115,19 +119,31 @@
           },
           "title": "Queue",
           "type": "array"
+        },
+        "current": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QueueEntry"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
         "loop",
         "volume",
+        "position",
         "state",
-        "queue"
+        "queue",
+        "current"
       ],
       "title": "PlayerModel",
       "type": "object"
     },
     "PlayerState": {
-      "description": "State set for the MusicPlayer implementation.",
+      "description": "State set for wavelink.Player.",
       "enum": [
         "idle",
         "playing",
@@ -138,8 +154,28 @@
       "title": "PlayerState",
       "type": "string"
     },
+    "PrevCommand": {
+      "description": "Remote command to play the previous track.",
+      "properties": {
+        "op": {
+          "const": "prev",
+          "title": "Op",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "op",
+        "code"
+      ],
+      "title": "PrevCommand",
+      "type": "object"
+    },
     "QueueEntry": {
-      "description": "Data model for a MusicQueue entry.",
+      "description": "Data model for a wavelink.Queue entry.",
       "properties": {
         "id": {
           "title": "Id",
@@ -221,9 +257,10 @@
           "loop": "#/$defs/LoopCommand",
           "move": "#/$defs/MoveCommand",
           "pause": "#/$defs/PauseCommand",
+          "prev": "#/$defs/PrevCommand",
           "remove": "#/$defs/RemoveCommand",
           "resume": "#/$defs/ResumeCommand",
-          "stop": "#/$defs/StopCommand",
+          "skip": "#/$defs/SkipCommand",
           "volume": "#/$defs/VolumeCommand"
         },
         "propertyName": "op"
@@ -231,9 +268,6 @@
       "oneOf": [
         {
           "$ref": "#/$defs/PauseCommand"
-        },
-        {
-          "$ref": "#/$defs/StopCommand"
         },
         {
           "$ref": "#/$defs/ResumeCommand"
@@ -252,6 +286,12 @@
         },
         {
           "$ref": "#/$defs/MoveCommand"
+        },
+        {
+          "$ref": "#/$defs/SkipCommand"
+        },
+        {
+          "$ref": "#/$defs/PrevCommand"
         }
       ],
       "title": "RemoteCommandModel"
@@ -306,11 +346,11 @@
       "title": "ResumeCommand",
       "type": "object"
     },
-    "StopCommand": {
-      "description": "Remote command to stop the player.",
+    "SkipCommand": {
+      "description": "Remote command to play the next track.",
       "properties": {
         "op": {
-          "const": "stop",
+          "const": "skip",
           "title": "Op",
           "type": "string"
         },
@@ -323,7 +363,7 @@
         "op",
         "code"
       ],
-      "title": "StopCommand",
+      "title": "SkipCommand",
       "type": "object"
     },
     "VolumeCommand": {

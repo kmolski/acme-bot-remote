@@ -37,8 +37,10 @@ impl Default for PlayerModel {
         PlayerModel {
             loop_: true,
             volume: 100,
+            position: 0,
             state: PlayerState::Idle,
             queue: vec![],
+            current: None,
         }
     }
 }

@@ -32,6 +32,8 @@ enum MessageType {
     Loop,
     Volume,
     Remove,
+    Skip,
+    Prev,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -149,12 +151,11 @@ fn format_duration(duration: &Duration) -> String {
     let mut formatted = String::new();
     let mut sec = duration.as_secs();
     let mut min = sec / 60;
-    sec %= 60;
     let hrs = min / 60;
     min %= 60;
+    sec %= 60;
     if hrs > 0 {
-        formatted.push_str(&format!("{hrs}:"));
-        formatted.push_str(&format!("{min:02}:"));
+        formatted.push_str(&format!("{hrs}:{min:02}:"));
     } else {
         formatted.push_str(&format!("{min}:"));
     }
@@ -368,10 +369,10 @@ fn Player() -> impl IntoView {
             <footer class="footer">
                 <div class="track" style="mask-image: linear-gradient(0.75turn, transparent, #fff4e0 2rem); contain: inline-size; overflow: hidden">
                     {move || {
-                        if !s.get().queue().is_empty() {
+                        if s.get().current.is_some() {
                             Some(
                                 view! {
-                                    <TrackCard track=MaybeSignal::derive(move || { let snap = s.get(); snap.queue().first().unwrap().clone() })/>
+                                    <TrackCard track=MaybeSignal::derive(move || { let snap = s.get(); snap.current.unwrap().clone() })/>
                                 }
                             )
                         } else {
@@ -393,8 +394,7 @@ fn Player() -> impl IntoView {
                         let remote_id = remote_id.clone();
                         let client = client.clone();
                         move |_| {
-                            let idx = snapshot.get().queue().len() - 1;
-                            publish_move(idx, snapshot.get().queue().get(idx).unwrap().id(), MessageType::Move, &access_code, &remote_id, &client);
+                            publish(MessageType::Prev, &access_code, &remote_id, &client);
                         }}>
                         <PreviousIcon frame=ICON_FRAME_LARGE/>
                         <span class="screenreader-only">Previous track</span>
@@ -421,8 +421,7 @@ fn Player() -> impl IntoView {
                         let remote_id = remote_id.clone();
                         let client = client.clone();
                         move |_| {
-                            let idx = if snapshot.get().queue().len() == 1 { 0 } else { 1 };
-                            publish_move(idx, snapshot.get().queue().get(idx).unwrap().id(), MessageType::Move, &access_code, &remote_id, &client);
+                            publish(MessageType::Skip, &access_code, &remote_id, &client);
                         }}>
                         <NextIcon frame=ICON_FRAME_LARGE/>
                         <span class="screenreader-only">Next track</span>
