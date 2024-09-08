@@ -1,7 +1,7 @@
 @font-face {
   font-family: 'Public Sans';
   font-display: swap;
-  src: url(./PublicSans-df270da50e1ae431.woff2) format('woff2');
+  src: url('./PublicSans-df270da50e1ae431.woff2') format('woff2');
 }
 
 @counter-style decimal-only {
@@ -10,7 +10,7 @@
   suffix: "  ";
 }
 
-@media screen and (min-width: 640px) {
+@media screen and (width >= 640px) {
   .footer {
     flex-direction: row;
     justify-content: space-between;
@@ -26,7 +26,7 @@
   }
 }
 
-@media screen and (max-width: 639px) {
+@media screen and (width <= 639px) {
   .footer {
     flex-direction: column;
     justify-content: end;
@@ -48,7 +48,6 @@ $accent-color: #fd9745;
 $active-color: #e6dcca;
 $main-color: #fff4e0;
 $text-color: #000;
-
 $border: 2px solid $text-color;
 
 html {
