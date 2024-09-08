@@ -1,7 +1,7 @@
 @font-face {
   font-family: 'Public Sans';
   font-display: swap;
-  src: url(./PublicSans-df270da50e1ae431.woff2) format('woff2');
+  src: url('./PublicSans-df270da50e1ae431.woff2') format('woff2');
 }
 
 @counter-style decimal-only {
@@ -10,11 +10,44 @@
   suffix: "  ";
 }
 
+@media screen and (width >= 640px) {
+  .footer {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .track {
+    contain: inline-size;
+  }
+
+  .track,
+  .volume-widget {
+    flex-basis: 0;
+  }
+}
+
+@media screen and (width <= 639px) {
+  .footer {
+    flex-direction: column;
+    justify-content: end;
+  }
+
+  .track,
+  .controls {
+    justify-content: center;
+    width: 100%;
+    padding-bottom: 0.5rem;
+  }
+
+  .btn-inline {
+    margin: 0.5rem;
+  }
+}
+
 $accent-color: #fd9745;
 $active-color: #e6dcca;
 $main-color: #fff4e0;
 $text-color: #000;
-
 $border: 2px solid $text-color;
 
 html {
@@ -52,7 +85,6 @@ body {
 .footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   background-color: $main-color;
   border-top: $border;
   padding: 0.5rem;
@@ -73,7 +105,6 @@ body {
 .track,
 .volume-widget {
   flex-grow: 1;
-  flex-basis: 0;
 }
 
 .track {
@@ -172,10 +203,10 @@ input[type = "range"]::-moz-range-thumb {
   background: none;
   border: 0;
   text-align: center;
+  height: 1.3em;
   width: 1.3em;
   padding: 0;
-  margin-right: 0.25rem;
-  vertical-align: middle;
+  margin-right: 0.5rem;
 }
 
 .svg-icon {

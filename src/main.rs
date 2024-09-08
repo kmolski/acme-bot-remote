@@ -330,11 +330,11 @@ fn Player() -> impl IntoView {
                                 let client = client.clone();
                                 view! {
                                     <li>
-                                        <div class="track" style="width: 100%; align-items: center; border-radius: 0.25rem; padding: 0.25rem; justify-content: space-between; contain: inline-size">
+                                        <div class="track" style="width: 100%; align-items: center; border-radius: 0.25rem; padding: 0.25rem; justify-content: space-between">
                                             <div style="display: inline-flex; mask-image: linear-gradient(0.75turn, transparent, #fff4e0 2rem); overflow: hidden">
                                                 <TrackCard track=entry.clone().into()/>
                                             </div>
-                                            <div style="display: inline-flex">
+                                            <div style="display: inline-flex; align-items: center">
                                                 <span style="margin-right: 0.5rem">{ format_duration(&entry.duration()) }</span>
                                                 <button class="btn-inline" on:click={
                                                         let access_code = access_code.clone();
@@ -367,7 +367,7 @@ fn Player() -> impl IntoView {
                 </ol>
             </main>
             <footer class="footer">
-                <div class="track" style="mask-image: linear-gradient(0.75turn, transparent, #fff4e0 2rem); contain: inline-size; overflow: hidden">
+                <div class="track" style="mask-image: linear-gradient(0.75turn, transparent, #fff4e0 2rem); overflow: hidden">
                     {move || {
                         if s.get().current.is_some() {
                             Some(
