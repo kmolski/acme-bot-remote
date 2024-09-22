@@ -23,7 +23,7 @@ const ICON_FRAME_LARGE: &str = "0 0 38 38";
 
 const COPYRIGHT_INFO: &str = "\
 acme-bot-remote
-Copyright (C) 2023  Krzysztof Molski
+Copyright (C) 2023-2024  Krzysztof Molski
 
 This program is free software: you can redistribute it and/or modify it under the terms
 of the GNU Affero General Public License as published by the Free Software Foundation,
