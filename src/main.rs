@@ -482,7 +482,7 @@ fn Player() -> impl IntoView {
             <dialog class="copyright-dialog" open=dialog_read>
                 <pre>{ COPYRIGHT_INFO }</pre>
                 <p><a href="https://github.com/kmolski/acme-bot-remote" target="_blank">Show source code</a></p>
-                <p><a href="/license_info.html" target="_blank">Show OSS licenses</a></p>
+                <p><a href="./license_info.html" target="_blank">Show OSS licenses</a></p>
                 <button on:click=move |_| { dialog_write.set(false) }>Close</button>
             </dialog>
         </div>
