@@ -334,7 +334,7 @@ fn Player() -> impl IntoView {
                                             <div style="display: inline-flex; mask-image: linear-gradient(0.75turn, transparent, #fff4e0 2rem); overflow: hidden">
                                                 <TrackCard track=entry.clone().into()/>
                                             </div>
-                                            <div style="display: inline-flex; align-items: center">
+                                            <div class="track-controls">
                                                 <span style="margin-right: 0.5rem">{ format_duration(&entry.duration()) }</span>
                                                 <button class="btn-inline" on:click={
                                                         let access_code = access_code.clone();

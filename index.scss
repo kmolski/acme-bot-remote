@@ -39,7 +39,7 @@
     padding-bottom: 0.5rem;
   }
 
-  .btn-inline {
+  .track-controls > .btn-inline {
     margin: 0.5rem;
   }
 }
@@ -109,6 +109,11 @@ body {
 
 .track {
   justify-content: flex-start;
+}
+
+.track-controls {
+  display: inline-flex;
+  align-items: center;
 }
 
 .volume-widget {
@@ -206,6 +211,10 @@ input[type = "range"]::-moz-range-thumb {
   height: 1.3em;
   width: 1.3em;
   padding: 0;
+  margin-right: 0.25rem;
+}
+
+.track-controls > .btn-inline {
   margin-right: 0.5rem;
 }
 
