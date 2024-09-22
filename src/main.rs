@@ -21,6 +21,20 @@ mod stomp;
 const ICON_FRAME_SMALL: &str = "8 8 22 22";
 const ICON_FRAME_LARGE: &str = "0 0 38 38";
 
+const COPYRIGHT_INFO: &str = "\
+acme-bot-remote
+Copyright (C) 2023-2024  Krzysztof Molski
+
+This program is free software: you can redistribute it and/or modify it under the terms
+of the GNU Affero General Public License as published by the Free Software Foundation,
+either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.
+See the GNU Affero General Public License for more details.
+";
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 enum MessageType {
@@ -224,6 +238,16 @@ fn LoopIcon(frame: &'static str) -> impl IntoView {
 }
 
 #[component]
+fn InfoIcon(frame: &'static str) -> impl IntoView {
+    view! {
+        <svg class="svg-icon" aria-hidden="true" viewBox={ frame }>
+            <rect x="17" y="9" width="4" height="4" fill="#bfb7a8"/>
+            <rect x="17" y="15" width="4" height="14" fill="#bfb7a8"/>
+        </svg>
+    }
+}
+
+#[component]
 fn VolumeIcon(value: Signal<u8>) -> impl IntoView {
     view! {
         <svg width="1.3em" height="1.3em" aria-hidden="true" viewBox="0 0 22 20">
@@ -311,10 +335,15 @@ fn Player() -> impl IntoView {
         }
     }
     let s = snapshot;
+    let (dialog_read, dialog_write) = create_signal(false);
     view! {
         <div class="container">
             <header class="header">
                 <span>Next up</span>
+                <button class="btn-inline" on:click=move |_| { dialog_write.set(true) }>
+                    <InfoIcon frame=ICON_FRAME_SMALL/>
+                    <span class="screenreader-only">Show copyright info</span>
+                </button>
             </header>
             <main class="track-list">
                 <ol>
@@ -334,7 +363,7 @@ fn Player() -> impl IntoView {
                                             <div style="display: inline-flex; mask-image: linear-gradient(0.75turn, transparent, #fff4e0 2rem); overflow: hidden">
                                                 <TrackCard track=entry.clone().into()/>
                                             </div>
-                                            <div style="display: inline-flex; align-items: center">
+                                            <div class="track-controls">
                                                 <span style="margin-right: 0.5rem">{ format_duration(&entry.duration()) }</span>
                                                 <button class="btn-inline" on:click={
                                                         let access_code = access_code.clone();
@@ -450,6 +479,12 @@ fn Player() -> impl IntoView {
                             move |e| { publish_volume(event_target_value(&e).parse().unwrap(), &access_code, &remote_id, &client); }}/>
                 </label>
             </footer>
+            <dialog class="copyright-dialog" open=dialog_read>
+                <pre>{ COPYRIGHT_INFO }</pre>
+                <p><a href="https://github.com/kmolski/acme-bot-remote" target="_blank">Show source code</a></p>
+                <p><a href="./license_info.html" target="_blank">Show OSS licenses</a></p>
+                <button on:click=move |_| { dialog_write.set(false) }>Close</button>
+            </dialog>
         </div>
     }
 }
