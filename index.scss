@@ -72,6 +72,9 @@ body {
 }
 
 .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   border-bottom: $border;
   padding: 0.5rem;
   font-size: 1.25rem;
@@ -89,6 +92,13 @@ body {
 .track-list {
   contain: layout;
   overflow-y: auto;
+}
+
+.copyright-dialog {
+  background-color: $main-color;
+  border: $border;
+  padding-top: 0;
+  text-align: justify;
 }
 
 .track,
