@@ -265,10 +265,10 @@ fn VolumeIcon(value: Signal<u8>) -> impl IntoView {
 #[component]
 fn TrackCard<T: TrackSnapshot + Clone + 'static>(track: MaybeSignal<T>) -> impl IntoView {
     view! {
-        <div style="display: flex; white-space: nowrap">
-            <img src={ track.get().thumbnail().map(|s| s.to_string()) } style="height: 2.5rem; width: 2.5rem; border-radius: 0.25rem; object-fit: cover; margin-right: 0.5rem"/>
-            <div style="display: flex; flex-direction: column; padding-right: 2rem">
-                <a href={ track.get().webpage_url().to_string() } target="_blank" style="font-weight: 600">{ track.get().title().to_string() }</a>
+        <div class="track-card">
+            <img src={ track.get().thumbnail().map(|s| s.to_string()) } class="track-thumbnail"/>
+            <div class="track-card-labels">
+                <a href={ track.get().webpage_url().to_string() } target="_blank" class="track-title">{ track.get().title().to_string() }</a>
                 <a href={ track.get().uploader_url().map(|s| s.to_string()) } target="_blank">{ track.get().uploader().to_string() }</a>
             </div>
         </div>
@@ -359,12 +359,10 @@ fn Player() -> impl IntoView {
                                 let client = client.clone();
                                 view! {
                                     <li>
-                                        <div class="track" style="width: 100%; align-items: center; border-radius: 0.25rem; padding: 0.25rem; justify-content: space-between">
-                                            <div style="display: inline-flex; mask-image: linear-gradient(0.75turn, transparent, #fff4e0 2rem); overflow: hidden">
-                                                <TrackCard track=entry.clone().into()/>
-                                            </div>
+                                        <div class="track">
+                                            <TrackCard track=entry.clone().into()/>
                                             <div class="track-controls">
-                                                <span style="margin-right: 0.5rem">{ format_duration(&entry.duration()) }</span>
+                                                <span class="track-duration">{ format_duration(&entry.duration()) }</span>
                                                 <button class="btn-inline" on:click={
                                                         let access_code = access_code.clone();
                                                         let remote_id = remote_id.clone();
@@ -396,7 +394,7 @@ fn Player() -> impl IntoView {
                 </ol>
             </main>
             <footer class="footer">
-                <div class="track" style="mask-image: linear-gradient(0.75turn, transparent, #fff4e0 2rem); overflow: hidden">
+                <div class="track">
                     {move || {
                         if s.get().current.is_some() {
                             Some(
