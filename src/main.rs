@@ -360,9 +360,7 @@ fn Player() -> impl IntoView {
                                 view! {
                                     <li>
                                         <div class="track">
-                                            <div class="track-card-ctr">
-                                                <TrackCard track=entry.clone().into()/>
-                                            </div>
+                                            <TrackCard track=entry.clone().into()/>
                                             <div class="track-controls">
                                                 <span class="track-duration">{ format_duration(&entry.duration()) }</span>
                                                 <button class="btn-inline" on:click={
@@ -396,7 +394,7 @@ fn Player() -> impl IntoView {
                 </ol>
             </main>
             <footer class="footer">
-                <div class="track track-card-ctr">
+                <div class="track">
                     {move || {
                         if s.get().current.is_some() {
                             Some(
