@@ -364,7 +364,7 @@ fn Player() -> impl IntoView {
                                                 <TrackCard track=entry.clone().into()/>
                                             </div>
                                             <div class="track-controls">
-                                                <span style="margin-right: 0.5rem">{ format_duration(&entry.duration()) }</span>
+                                                <span class="track-duration">{ format_duration(&entry.duration()) }</span>
                                                 <button class="btn-inline" on:click={
                                                         let access_code = access_code.clone();
                                                         let remote_id = remote_id.clone();
