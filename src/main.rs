@@ -265,10 +265,10 @@ fn VolumeIcon(value: Signal<u8>) -> impl IntoView {
 #[component]
 fn TrackCard<T: TrackSnapshot + Clone + 'static>(track: MaybeSignal<T>) -> impl IntoView {
     view! {
-        <div style="display: flex; white-space: nowrap">
-            <img src={ track.get().thumbnail().map(|s| s.to_string()) } style="height: 2.5rem; width: 2.5rem; border-radius: 0.25rem; object-fit: cover; margin-right: 0.5rem"/>
-            <div style="display: flex; flex-direction: column; padding-right: 2rem">
-                <a href={ track.get().webpage_url().to_string() } target="_blank" style="font-weight: 600">{ track.get().title().to_string() }</a>
+        <div class="track-card">
+            <img src={ track.get().thumbnail().map(|s| s.to_string()) } class="track-thumbnail"/>
+            <div class="track-card-labels">
+                <a href={ track.get().webpage_url().to_string() } target="_blank" class="track-title">{ track.get().title().to_string() }</a>
                 <a href={ track.get().uploader_url().map(|s| s.to_string()) } target="_blank">{ track.get().uploader().to_string() }</a>
             </div>
         </div>
