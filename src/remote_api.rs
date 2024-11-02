@@ -1,7 +1,6 @@
 // Copyright (C) 2024  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use serde::{Deserialize, Serialize};
 use typify::import_types;
 
 use crate::player::{MusicPlayerState, PlayerSnapshot, TrackSnapshot};
