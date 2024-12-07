@@ -7,7 +7,6 @@ use std::sync::{Arc, Mutex, Weak};
 use serde::Serialize;
 use thiserror::Error;
 use typify::import_types;
-use wasm_bindgen::prelude::Closure;
 
 pub use stomp::StompUrl;
 
@@ -17,6 +16,7 @@ mod stomp;
 
 import_types!("src/remote_api/schema.json");
 
+#[derive(Clone)]
 pub struct RemotePlayer {
     client: Arc<Mutex<stomp::StompClient>>,
     access_code: i64,
@@ -33,22 +33,22 @@ enum RemotePlayerError {
 }
 
 impl RemotePlayer {
-    pub fn new<C>(
+    pub fn new<M>(
         url: StompUrl,
         login: &str,
         password: &str,
         remote_id: &str,
         access_code: i64,
-        on_message: C,
+        on_message: M,
     ) -> Self
     where
-        C: Fn(&str) + 'static,
+        M: Fn(&str) + 'static,
     {
         let exchange = format!("/exchange/acme_bot_remote_update/{remote_id}.{access_code}");
         let client: Arc<Mutex<stomp::StompClient>> =
             Arc::new_cyclic(move |weak: &Weak<Mutex<stomp::StompClient>>| {
                 let weak_ref = weak.clone();
-                let on_connect = Closure::new(move |_| {
+                let on_connect = move |_| {
                     if let Some(arc) = weak_ref.upgrade() {
                         let mut client = arc.lock().expect("lock poisoned");
                         if client.connected() {
@@ -63,10 +63,10 @@ impl RemotePlayer {
                             // logging::log!("DONE!");
                         }
                     }
-                });
+                };
                 let mut client =
                     stomp::StompClient::new(&url, &login, &password, on_message, on_connect);
-                client.activate();
+                client.connect();
                 Mutex::new(client)
             });
 

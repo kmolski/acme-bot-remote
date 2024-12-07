@@ -31,15 +31,16 @@ pub enum StompClientError {
 }
 
 impl StompClient {
-    pub fn new<C>(
+    pub fn new<M, C>(
         url: &StompUrl,
         login: &str,
         passcode: &str,
-        on_message: C,
-        on_connect: EventConsumer,
+        on_message: M,
+        on_connect: C,
     ) -> Self
     where
-        C: Fn(&str) + 'static,
+        M: Fn(&str) + 'static,
+        C: Fn(JsValue) + 'static,
     {
         let conf = StompConfig {
             brokerURL: url.0.to_string(),
@@ -49,6 +50,7 @@ impl StompClient {
             },
         };
         let client = Client::new(&JsValue::from_serde(&conf).expect("from_serde always succeeds"));
+        let on_connect = Closure::new(on_connect);
         client.set_onConnect(&on_connect);
 
         Self {
@@ -59,7 +61,7 @@ impl StompClient {
         }
     }
 
-    pub fn activate(&mut self) {
+    pub fn connect(&mut self) {
         self.client.activate();
     }
 
