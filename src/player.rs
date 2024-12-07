@@ -1,17 +1,28 @@
 // Copyright (C) 2024  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+use std::error::Error;
 use std::time::Duration;
-use thiserror::Error;
 
-// pub struct MusicPlayer<P: PlayerSnapshot, C: PubSubClient> {
-//     access_code: String,
-//     remote_id: String,
-//     snapshot: P,
-//     client: C,
-// }
+pub trait Player {
+    fn clear(&self) -> Result<(), impl Error>;
 
-pub trait PlayerSnapshot<T: TrackSnapshot> {
+    fn move_to(&self, offset: usize, id: &str) -> Result<(), impl Error>;
+
+    fn pause(&self) -> Result<(), impl Error>;
+
+    fn prev(&self) -> Result<(), impl Error>;
+
+    fn resume(&self) -> Result<(), impl Error>;
+
+    fn set_loop(&self, enabled: bool) -> Result<(), impl Error>;
+
+    fn set_volume(&self, value: u8) -> Result<(), impl Error>;
+
+    fn skip(&self) -> Result<(), impl Error>;
+}
+
+pub trait PlayerSnapshot<T: TrackSnapshot>: Default {
     /// Check if queue loop is enabled.
     fn loop_enabled(&self) -> bool;
 
@@ -56,51 +67,4 @@ pub trait TrackSnapshot {
 
     /// Get the track thumbnail URL as an optional string.
     fn thumbnail(&self) -> Option<&str>;
-}
-
-#[derive(Error, Debug, Eq, PartialEq)]
-pub enum PubSubError {
-    #[error("Not connected")]
-    NotConnected,
-}
-
-pub trait PubSubClient {
-    /// Start connecting to the message broker.
-    fn activate(&self);
-
-    /// Check if the client is connected to the message broker.
-    fn connected(&self) -> bool;
-
-    /// Check if the client is subscribed to a destination.
-    fn subscribed(&self) -> bool;
-
-    /// Publish a message to the given destination.
-    ///
-    /// # Arguments
-    ///
-    /// * `msg`: &str - message content
-    /// * `dest`: &str - destination queue
-    ///
-    /// returns: Result<(), PubSubError>
-    ///
-    /// # Errors
-    ///
-    /// * `PubSubError::NotConnected` - client is not connected to the message broker
-    fn publish(&self, msg: &str, dest: &str) -> Result<(), PubSubError>;
-
-    /// Subscribe to the given destination.
-    ///
-    /// # Arguments
-    ///
-    /// * `callback`: C - callback invoked when a message is received
-    /// * `dest`: &str - destination queue
-    ///
-    /// returns: Result<(), PubSubError>
-    ///
-    /// # Errors
-    ///
-    /// * `PubSubError::NotConnected` - client is not connected to the message broker
-    fn subscribe<C>(&mut self, callback: C, dest: &str) -> Result<(), PubSubError>
-    where
-        C: Fn(String) + 'static;
 }

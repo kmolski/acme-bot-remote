@@ -4,6 +4,7 @@
 use std::error::Error;
 use std::sync::{Arc, Mutex, Weak};
 
+use leptos::logging;
 use serde::Serialize;
 use thiserror::Error;
 use typify::import_types;
@@ -45,30 +46,25 @@ impl RemotePlayer {
         M: Fn(&str) + 'static,
     {
         let exchange = format!("/exchange/acme_bot_remote_update/{remote_id}.{access_code}");
-        let client: Arc<Mutex<stomp::StompClient>> =
-            Arc::new_cyclic(move |weak: &Weak<Mutex<stomp::StompClient>>| {
-                let weak_ref = weak.clone();
-                let on_connect = move |_| {
+        let client = Arc::new_cyclic(move |weak: &Weak<Mutex<stomp::StompClient>>| {
+            let weak_ref = weak.clone();
+            let mut client =
+                stomp::StompClient::new(&url, login, password, on_message, move |_| {
                     if let Some(arc) = weak_ref.upgrade() {
                         let mut client = arc.lock().expect("lock poisoned");
                         if client.connected() {
-                            // logging::log!("SUBBING!");
                             if let Err(e) = client.subscribe(&exchange) {
-                                leptos::logging::warn!("{e:?}");
+                                logging::warn!("stomp subscribe error: {e:?}");
                             }
                             if let Err(e) = client.publish("", &exchange) {
-                                leptos::logging::warn!("{e:?}");
+                                logging::warn!("stomp publish error: {e:?}");
                             }
-                            // logging::log!("connected: {}", client.subscribed());
-                            // logging::log!("DONE!");
                         }
                     }
-                };
-                let mut client =
-                    stomp::StompClient::new(&url, &login, &password, on_message, on_connect);
-                client.connect();
-                Mutex::new(client)
-            });
+                });
+            client.connect();
+            Mutex::new(client)
+        });
 
         Self {
             client,
