@@ -1,8 +1,7 @@
 // Copyright (C) 2023-2024  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use std::rc::Rc;
-use std::sync::{Arc, Mutex, Weak};
+use std::time::Duration;
 
 use base64::prelude::*;
 use leptos::*;
@@ -10,13 +9,11 @@ use leptos_router::*;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use crate::player::{MusicPlayerState, PlayerSnapshot, PubSubClient, TrackSnapshot};
-use crate::remote_api::PlayerModel;
-use crate::stomp::{StompClient, StompUrl};
+use crate::player::{MusicPlayerState, Player, PlayerSnapshot, TrackSnapshot};
+use crate::remote_api::{PlayerModel, RemotePlayer, StompUrl};
 
 mod player;
 mod remote_api;
-mod stomp;
 
 const ICON_FRAME_SMALL: &str = "8 8 22 22";
 const ICON_FRAME_LARGE: &str = "0 0 38 38";
@@ -77,89 +74,6 @@ struct VolumeMessage {
     code: String,
     value: u8,
 }
-
-fn publish(op: MessageType, access_code: &str, remote_id: &str, client: &Arc<Mutex<StompClient>>) {
-    let command = Message {
-        op,
-        code: access_code.to_string(),
-    };
-    let msg = serde_json::to_string(&command).unwrap();
-    if let Err(e) = client
-        .lock()
-        .unwrap()
-        .publish(&msg, &format!("/exchange/acme_bot_remote/{remote_id}"))
-    {
-        logging::warn!("Could not send command: {e:?}")
-    }
-}
-
-fn publish_move(
-    offset: usize,
-    id: &str,
-    op: MessageType,
-    access_code: &str,
-    remote_id: &str,
-    client: &Arc<Mutex<StompClient>>,
-) {
-    let command = MoveMessage {
-        op,
-        code: access_code.to_string(),
-        offset,
-        id: id.to_string(),
-    };
-    let msg = serde_json::to_string(&command).unwrap();
-    if let Err(e) = client
-        .lock()
-        .unwrap()
-        .publish(&msg, &format!("/exchange/acme_bot_remote/{remote_id}"))
-    {
-        logging::warn!("Could not send command: {e:?}")
-    }
-}
-
-fn publish_loop(
-    loop_enabled: bool,
-    access_code: &str,
-    remote_id: &str,
-    client: &Arc<Mutex<StompClient>>,
-) {
-    let command = LoopMessage {
-        op: MessageType::Loop,
-        code: access_code.to_string(),
-        enabled: loop_enabled,
-    };
-    let msg = serde_json::to_string(&command).unwrap();
-    if let Err(e) = client
-        .lock()
-        .unwrap()
-        .publish(&msg, &format!("/exchange/acme_bot_remote/{remote_id}"))
-    {
-        logging::warn!("Could not send command: {e:?}")
-    }
-}
-
-fn publish_volume(
-    volume: u8,
-    access_code: &str,
-    remote_id: &str,
-    client: &Arc<Mutex<StompClient>>,
-) {
-    let command = VolumeMessage {
-        op: MessageType::Volume,
-        code: access_code.to_string(),
-        value: volume,
-    };
-    let msg = serde_json::to_string(&command).unwrap();
-    if let Err(e) = client
-        .lock()
-        .unwrap()
-        .publish(&msg, &format!("/exchange/acme_bot_remote/{remote_id}"))
-    {
-        logging::warn!("Could not send command: {e:?}")
-    }
-}
-
-use std::time::Duration;
 
 fn format_duration(duration: &Duration) -> String {
     let mut formatted = String::new();
@@ -278,8 +192,8 @@ fn TrackCard<T: TrackSnapshot + Clone + 'static>(track: MaybeSignal<T>) -> impl 
 #[component]
 fn Player() -> impl IntoView {
     let query_params = use_query_map().get_untracked();
-    let access_code = Rc::new(query_params.get("ac").unwrap().to_string());
-    let remote_id = Rc::new(query_params.get("rid").unwrap().to_string());
+    let access_code = query_params.get("ac").unwrap().parse::<i64>().unwrap();
+    let remote_id = query_params.get("rid").unwrap().to_string();
     let rcs_bytes = BASE64_URL_SAFE_NO_PAD
         .decode(query_params.get("rcs").unwrap())
         .unwrap();
@@ -290,50 +204,24 @@ fn Player() -> impl IntoView {
     let password = url.password().unwrap().to_string();
     url.set_username("").unwrap();
     url.set_password(None).unwrap();
+    url.set_fragment(None);
 
     let (snapshot, set_snapshot) = create_signal::<PlayerModel>(Default::default());
     let remote_url = StompUrl::new(url.as_str()).unwrap();
-    let exchange = format!("/exchange/acme_bot_remote_update/{remote_id}.{access_code}");
-    let client: Arc<Mutex<StompClient>> = Arc::new_cyclic(|weak_ref: &Weak<Mutex<StompClient>>| {
-        let weak = weak_ref.clone();
-        Mutex::new(StompClient::new(
-            &remote_url,
-            &login,
-            &password,
-            Some(move |_| {
-                if let Some(arc) = weak.upgrade() {
-                    let mut client = arc.lock().expect("lock poisoned");
-                    if client.connected() {
-                        logging::log!("SUBBING!");
-                        if let Err(e) = client.subscribe(
-                            move |m| {
-                                logging::log!("Message received: {}", m);
-                                match serde_json::from_str(&m) {
-                                    Ok(p) => set_snapshot.set(p),
-                                    Err(e) => logging::error!("Invalid snapshot: {}", e),
-                                }
-                            },
-                            &exchange,
-                        ) {
-                            leptos::logging::warn!("{e:?}");
-                        }
-                        if let Err(e) = client.publish("", &exchange) {
-                            leptos::logging::warn!("{e:?}");
-                        }
-                        logging::log!("connected: {}", client.subscribed());
-                        logging::log!("DONE!");
-                    }
-                }
-            }),
-        ))
-    });
-    let _arc = client.clone();
-    {
-        match client.lock() {
-            Ok(c) => c.activate(),
-            Err(e) => leptos::logging::warn!("{e:?}"),
-        }
-    }
+    let client = RemotePlayer::new(
+        remote_url,
+        &login,
+        &password,
+        &remote_id,
+        access_code,
+        move |m| {
+            logging::log!("Message received: {}", m);
+            match serde_json::from_str(m) {
+                Ok(p) => set_snapshot.set(p),
+                Err(e) => logging::error!("Invalid snapshot: {}", e),
+            }
+        },
+    );
     let s = snapshot;
     let (dialog_read, dialog_write) = create_signal(false);
     view! {
@@ -350,13 +238,8 @@ fn Player() -> impl IntoView {
                     <For each=move || snapshot.get().queue().to_vec()
                          key=move |entry| entry.id().to_string()
                          children={
-                            let access_code = access_code.clone();
-                            let remote_id = remote_id.clone();
                             let client = client.clone();
                             move |entry| {
-                                let access_code = access_code.clone();
-                                let remote_id = remote_id.clone();
-                                let client = client.clone();
                                 view! {
                                     <li>
                                         <div class="track">
@@ -364,24 +247,20 @@ fn Player() -> impl IntoView {
                                             <div class="track-controls">
                                                 <span class="track-duration">{ format_duration(&entry.duration()) }</span>
                                                 <button class="btn-inline" on:click={
-                                                        let access_code = access_code.clone();
-                                                        let remote_id = remote_id.clone();
-                                                        let client = client.clone();
                                                         let entry = entry.clone();
+                                                        let client = client.clone();
                                                         move |_| {
                                                         let idx = snapshot.get().queue().iter().position(|e| e.id() == entry.id()).unwrap();
-                                                        publish_move(idx, entry.id(), MessageType::Move, &access_code, &remote_id, &client); }}>
+                                                        client.move_to(idx, entry.id()).unwrap(); }}>
                                                     <PlayIcon frame=ICON_FRAME_SMALL/>
                                                     <span class="screenreader-only">Play</span>
                                                 </button>
                                                 <button class="btn-inline" on:click={
-                                                        let access_code = access_code.clone();
-                                                        let remote_id = remote_id.clone();
-                                                        let client = client.clone();
                                                         let entry = entry.clone();
+                                                        let client = client.clone();
                                                         move |_| {
                                                         let idx = snapshot.get().queue().iter().position(|e| e.id() == entry.id()).unwrap();
-                                                        publish_move(idx, entry.id(), MessageType::Remove, &access_code, &remote_id, &client); }}>
+                                                        client.move_to(idx, entry.id()).unwrap(); }}>
                                                     <DeleteIcon frame=ICON_FRAME_SMALL/>
                                                     <span class="screenreader-only">Remove</span>
                                                 </button>
@@ -409,32 +288,24 @@ fn Player() -> impl IntoView {
                 </div>
                 <div class="controls">
                     <button class="btn-round" on:click={
-                        let access_code = access_code.clone();
-                        let remote_id = remote_id.clone();
                         let client = client.clone();
-                        move |_| { publish(MessageType::Clear, &access_code, &remote_id, &client); }}>
+                        move |_| { client.clear().unwrap(); }}>
                         <DeleteIcon frame=ICON_FRAME_LARGE/>
                         <span class="screenreader-only">Clear queue</span>
                     </button>
                     <button class="btn-round" on:click={
-                        let access_code = access_code.clone();
-                        let remote_id = remote_id.clone();
                         let client = client.clone();
-                        move |_| {
-                            publish(MessageType::Prev, &access_code, &remote_id, &client);
-                        }}>
+                        move |_| { client.prev().unwrap(); }}>
                         <PreviousIcon frame=ICON_FRAME_LARGE/>
                         <span class="screenreader-only">Previous track</span>
                     </button>
                     <button class="btn-round" on:click={
-                        let access_code = access_code.clone();
-                        let remote_id = remote_id.clone();
                         let client = client.clone();
                         move |_| {
                             if s.get().state() == MusicPlayerState::Playing {
-                                publish(MessageType::Pause, &access_code, &remote_id, &client);
+                                client.pause().unwrap();
                             } else {
-                                publish(MessageType::Resume, &access_code, &remote_id, &client);
+                                client.resume().unwrap();
                             }
                         }}>
                         <Show when=move || { s.get().state() == MusicPlayerState::Playing }
@@ -444,12 +315,8 @@ fn Player() -> impl IntoView {
                         </Show>
                     </button>
                     <button class="btn-round" on:click={
-                        let access_code = access_code.clone();
-                        let remote_id = remote_id.clone();
                         let client = client.clone();
-                        move |_| {
-                            publish(MessageType::Skip, &access_code, &remote_id, &client);
-                        }}>
+                        move |_| { client.skip().unwrap(); }}>
                         <NextIcon frame=ICON_FRAME_LARGE/>
                         <span class="screenreader-only">Next track</span>
                     </button>
@@ -457,10 +324,8 @@ fn Player() -> impl IntoView {
                         <input type="checkbox"
                             prop:checked=move || { snapshot.get().loop_enabled() }
                             on:change={
-                                let access_code = access_code.clone();
-                                let remote_id = remote_id.clone();
                                 let client = client.clone();
-                                move |e| { publish_loop(event_target_checked(&e), &access_code, &remote_id, &client); }}/>
+                                move |e| { client.set_loop(event_target_checked(&e)).unwrap(); }}/>
                         <LoopIcon frame=ICON_FRAME_LARGE/>
                         <span class="screenreader-only">Loop</span>
                     </label>
@@ -471,10 +336,8 @@ fn Player() -> impl IntoView {
                     <input type="range" id="volume" min="0" max="100" step="1"
                         prop:value=move || { snapshot.get().volume() }
                         on:change={
-                            let access_code = access_code.clone();
-                            let remote_id = remote_id.clone();
                             let client = client.clone();
-                            move |e| { publish_volume(event_target_value(&e).parse().unwrap(), &access_code, &remote_id, &client); }}/>
+                            move |e| { client.set_volume(event_target_value(&e).parse().unwrap()).unwrap(); }}/>
                 </label>
             </footer>
             <dialog class="copyright-dialog" open=dialog_read>
