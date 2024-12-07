@@ -69,10 +69,6 @@ impl StompClient {
         self.client.connected()
     }
 
-    pub fn subscribed(&self) -> bool {
-        self.subscription.is_some()
-    }
-
     pub fn publish(&mut self, msg: &str, dest: &str) -> Result<(), StompClientError> {
         if !self.connected() {
             return Err(StompClientError::NotConnected);
