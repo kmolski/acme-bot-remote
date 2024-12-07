@@ -16,10 +16,13 @@ use wasm_bindgen::prelude::*;
 pub struct StompClient {
     client: Client,
     subscription: Option<Subscription>,
-    subscription_callback: Option<MessageConsumer>,
+    subscription_callback: MessageConsumer,
+    #[allow(unused)]
+    on_connect_callback: EventConsumer,
 }
 
 type MessageConsumer = Closure<dyn FnMut(IMessage)>;
+type EventConsumer = Closure<dyn FnMut(JsValue)>;
 
 #[derive(Error, Debug, Eq, PartialEq)]
 pub enum StompClientError {
@@ -32,8 +35,12 @@ impl StompClient {
         url: &StompUrl,
         login: &str,
         passcode: &str,
-        on_connect: &Closure<dyn FnMut(JsValue)>,
-    ) -> Self {
+        on_message: C,
+        on_connect: EventConsumer,
+    ) -> Self
+    where
+        C: Fn(&str) + 'static,
+    {
         let conf = StompConfig {
             brokerURL: url.0.to_string(),
             connectHeaders: StompHeaders {
@@ -47,7 +54,8 @@ impl StompClient {
         Self {
             client,
             subscription: None,
-            subscription_callback: None,
+            subscription_callback: Closure::new(move |msg: IMessage| on_message(&msg.body())),
+            on_connect_callback: on_connect,
         }
     }
 
@@ -76,17 +84,13 @@ impl StompClient {
         Ok(())
     }
 
-    pub fn subscribe<C>(&mut self, callback: C, dest: &str) -> Result<(), StompClientError>
-    where
-        C: Fn(&str) + 'static,
-    {
+    pub fn subscribe(&mut self, dest: &str) -> Result<(), StompClientError> {
         if !self.connected() {
             return Err(StompClientError::NotConnected);
         }
-        self.subscription_callback = Some(Closure::new(move |msg: IMessage| callback(&msg.body())));
         self.subscription = Some(self.client.subscribe(
             &JsValue::from_str(dest),
-            self.subscription_callback.as_ref().unwrap(),
+            &self.subscription_callback,
             &JsValue::null(),
         ));
         Ok(())
@@ -139,7 +143,7 @@ extern "C" {
     fn new(conf: &JsValue) -> Client;
 
     #[wasm_bindgen(method, setter, structural)]
-    fn set_onConnect(this: &Client, callback: &crate::remote_api::EventConsumer);
+    fn set_onConnect(this: &Client, callback: &EventConsumer);
 
     #[wasm_bindgen(method)]
     fn activate(this: &Client);
