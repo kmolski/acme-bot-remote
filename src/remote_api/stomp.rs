@@ -10,77 +10,37 @@ use thiserror::Error;
 use url::{ParseError, Url};
 use wasm_bindgen::prelude::*;
 
-use crate::player::{PubSubClient, PubSubError};
-
-/// URL for a STOMP-over-WebSocket secure connection.
-pub struct StompUrl(Url);
-
-#[derive(Error, Debug, Eq, PartialEq)]
-pub enum StompUrlError {
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(#[from] ParseError),
-
-    #[error("URL must use the WSS scheme")]
-    InvalidScheme,
-
-    #[error("URL cannot contain a fragment")]
-    HasFragment,
-}
-
-impl StompUrl {
-    /// Parse a STOMP-over-WebSocket URL from a string.
-    ///
-    /// # Arguments
-    ///
-    /// * `url`: &str - STOMP-over-WebSocket URL to parse
-    ///
-    /// returns: Result<StompUrl, StompUrlError>
-    ///
-    /// # Errors
-    ///
-    /// * `StompUrlError::InvalidUrl` - invalid URL syntax
-    /// * `StompUrlError::InvalidScheme` - invalid URL scheme (must be WSS)
-    /// * `StompUrlError::HasFragment` - invalid URL fragment (must be empty)
-    pub fn new(url: &str) -> Result<Self, StompUrlError> {
-        let url = Url::parse(url)?;
-        if url.scheme() != "wss" {
-            Err(StompUrlError::InvalidScheme)
-        } else if url.fragment().is_some() {
-            Err(StompUrlError::HasFragment)
-        } else {
-            Ok(Self(url))
-        }
-    }
-}
-
-type EventConsumer = Closure<dyn FnMut(JsValue)>;
-type MessageConsumer = Closure<dyn FnMut(IMessage)>;
-
 /// Synchronous wrapper for the stompjs.Client class.
 ///
 /// See https://stomp-js.github.io/api-docs/latest/classes/Client.html for details.
 pub struct StompClient {
     client: Client,
     subscription: Option<Subscription>,
-    subscription_callback: Option<MessageConsumer>,
+    subscription_callback: MessageConsumer,
     #[allow(unused)]
-    on_connect_callback: Option<EventConsumer>,
+    on_connect_callback: EventConsumer,
+}
+
+type MessageConsumer = Closure<dyn FnMut(IMessage)>;
+type EventConsumer = Closure<dyn FnMut(JsValue)>;
+
+#[derive(Error, Debug, Eq, PartialEq)]
+pub enum StompClientError {
+    #[error("not connected")]
+    NotConnected,
 }
 
 impl StompClient {
-    /// Create a new STOMP-over-WebSocket client.
-    ///
-    /// # Arguments
-    ///
-    /// * `url`: &StompUrl - URL of the message broker
-    /// * `login`: &str - user identifier used for authentication
-    /// * `passcode`: &str - password used for authentication
-    /// * `on_connect`: Option<C> - callback invoked on a successful connection
-    ///
-    /// returns: StompClient
-    pub fn new<C>(url: &StompUrl, login: &str, passcode: &str, on_connect: Option<C>) -> Self
+    pub fn new<M, C>(
+        url: &StompUrl,
+        login: &str,
+        passcode: &str,
+        on_message: M,
+        on_connect: C,
+    ) -> Self
     where
-        C: FnMut(JsValue) + 'static,
+        M: Fn(&str) + 'static,
+        C: Fn(JsValue) + 'static,
     {
         let conf = StompConfig {
             brokerURL: url.0.to_string(),
@@ -89,37 +49,29 @@ impl StompClient {
                 passcode: passcode.to_string(),
             },
         };
-        let on_connect_callback = on_connect.map(Closure::new);
         let client = Client::new(&JsValue::from_serde(&conf).expect("from_serde always succeeds"));
-        if let Some(ref callback) = on_connect_callback {
-            client.set_onConnect(callback);
-        }
+        let on_connect = Closure::new(on_connect);
+        client.set_onConnect(&on_connect);
 
         Self {
             client,
             subscription: None,
-            subscription_callback: None,
-            on_connect_callback,
+            subscription_callback: Closure::new(move |msg: IMessage| on_message(&msg.body())),
+            on_connect_callback: on_connect,
         }
     }
-}
 
-impl PubSubClient for StompClient {
-    fn activate(&self) {
+    pub fn connect(&mut self) {
         self.client.activate();
     }
 
-    fn connected(&self) -> bool {
+    pub fn connected(&self) -> bool {
         self.client.connected()
     }
 
-    fn subscribed(&self) -> bool {
-        self.subscription.is_some()
-    }
-
-    fn publish(&self, msg: &str, dest: &str) -> Result<(), PubSubError> {
+    pub fn publish(&mut self, msg: &str, dest: &str) -> Result<(), StompClientError> {
         if !self.connected() {
-            return Err(PubSubError::NotConnected);
+            return Err(StompClientError::NotConnected);
         }
         let pub_params = IPublishParams {
             destination: dest.to_string(),
@@ -130,17 +82,13 @@ impl PubSubClient for StompClient {
         Ok(())
     }
 
-    fn subscribe<C>(&mut self, callback: C, dest: &str) -> Result<(), PubSubError>
-    where
-        C: Fn(String) + 'static,
-    {
+    pub fn subscribe(&mut self, dest: &str) -> Result<(), StompClientError> {
         if !self.connected() {
-            return Err(PubSubError::NotConnected);
+            return Err(StompClientError::NotConnected);
         }
-        self.subscription_callback = Some(Closure::new(move |msg: IMessage| callback(msg.body())));
         self.subscription = Some(self.client.subscribe(
             &JsValue::from_str(dest),
-            self.subscription_callback.as_ref().unwrap(),
+            &self.subscription_callback,
             &JsValue::null(),
         ));
         Ok(())
@@ -151,6 +99,34 @@ impl Drop for StompClient {
     fn drop(&mut self) {
         if self.connected() {
             self.client.deactivate(&JsValue::from(Object::new()));
+        }
+    }
+}
+
+/// URL for a secure STOMP-over-WebSocket connection.
+pub struct StompUrl(Url);
+
+#[derive(Error, Debug, Eq, PartialEq)]
+pub enum StompUrlError {
+    #[error("invalid URL: {0}")]
+    InvalidUrl(#[from] ParseError),
+
+    #[error("URL must use the WSS scheme")]
+    InvalidScheme,
+
+    #[error("URL cannot contain a fragment")]
+    HasFragment,
+}
+
+impl StompUrl {
+    pub fn new(url: &str) -> Result<Self, StompUrlError> {
+        let url = Url::parse(url)?;
+        if url.scheme() != "wss" {
+            Err(StompUrlError::InvalidScheme)
+        } else if url.fragment().is_some() {
+            Err(StompUrlError::HasFragment)
+        } else {
+            Ok(Self(url))
         }
     }
 }
