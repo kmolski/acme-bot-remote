@@ -10,52 +10,6 @@ use thiserror::Error;
 use url::{ParseError, Url};
 use wasm_bindgen::prelude::*;
 
-use crate::player::{PubSubClient, PubSubError};
-
-/// URL for a STOMP-over-WebSocket secure connection.
-pub struct StompUrl(Url);
-
-#[derive(Error, Debug, Eq, PartialEq)]
-pub enum StompUrlError {
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(#[from] ParseError),
-
-    #[error("URL must use the WSS scheme")]
-    InvalidScheme,
-
-    #[error("URL cannot contain a fragment")]
-    HasFragment,
-}
-
-impl StompUrl {
-    /// Parse a STOMP-over-WebSocket URL from a string.
-    ///
-    /// # Arguments
-    ///
-    /// * `url`: &str - STOMP-over-WebSocket URL to parse
-    ///
-    /// returns: Result<StompUrl, StompUrlError>
-    ///
-    /// # Errors
-    ///
-    /// * `StompUrlError::InvalidUrl` - invalid URL syntax
-    /// * `StompUrlError::InvalidScheme` - invalid URL scheme (must be WSS)
-    /// * `StompUrlError::HasFragment` - invalid URL fragment (must be empty)
-    pub fn new(url: &str) -> Result<Self, StompUrlError> {
-        let url = Url::parse(url)?;
-        if url.scheme() != "wss" {
-            Err(StompUrlError::InvalidScheme)
-        } else if url.fragment().is_some() {
-            Err(StompUrlError::HasFragment)
-        } else {
-            Ok(Self(url))
-        }
-    }
-}
-
-type EventConsumer = Closure<dyn FnMut(JsValue)>;
-type MessageConsumer = Closure<dyn FnMut(IMessage)>;
-
 /// Synchronous wrapper for the stompjs.Client class.
 ///
 /// See https://stomp-js.github.io/api-docs/latest/classes/Client.html for details.
@@ -63,25 +17,23 @@ pub struct StompClient {
     client: Client,
     subscription: Option<Subscription>,
     subscription_callback: Option<MessageConsumer>,
-    #[allow(unused)]
-    on_connect_callback: Option<EventConsumer>,
+}
+
+type MessageConsumer = Closure<dyn FnMut(IMessage)>;
+
+#[derive(Error, Debug, Eq, PartialEq)]
+pub enum StompClientError {
+    #[error("not connected")]
+    NotConnected,
 }
 
 impl StompClient {
-    /// Create a new STOMP-over-WebSocket client.
-    ///
-    /// # Arguments
-    ///
-    /// * `url`: &StompUrl - URL of the message broker
-    /// * `login`: &str - user identifier used for authentication
-    /// * `passcode`: &str - password used for authentication
-    /// * `on_connect`: Option<C> - callback invoked on a successful connection
-    ///
-    /// returns: StompClient
-    pub fn new<C>(url: &StompUrl, login: &str, passcode: &str, on_connect: Option<C>) -> Self
-    where
-        C: FnMut(JsValue) + 'static,
-    {
+    pub fn new<C>(
+        url: &StompUrl,
+        login: &str,
+        passcode: &str,
+        on_connect: &Closure<dyn FnMut(JsValue)>,
+    ) -> Self {
         let conf = StompConfig {
             brokerURL: url.0.to_string(),
             connectHeaders: StompHeaders {
@@ -89,37 +41,31 @@ impl StompClient {
                 passcode: passcode.to_string(),
             },
         };
-        let on_connect_callback = on_connect.map(Closure::new);
         let client = Client::new(&JsValue::from_serde(&conf).expect("from_serde always succeeds"));
-        if let Some(ref callback) = on_connect_callback {
-            client.set_onConnect(callback);
-        }
+        client.set_onConnect(&on_connect);
 
         Self {
             client,
             subscription: None,
             subscription_callback: None,
-            on_connect_callback,
         }
     }
-}
 
-impl PubSubClient for StompClient {
-    fn activate(&self) {
+    pub fn activate(&mut self) {
         self.client.activate();
     }
 
-    fn connected(&self) -> bool {
+    pub fn connected(&self) -> bool {
         self.client.connected()
     }
 
-    fn subscribed(&self) -> bool {
+    pub fn subscribed(&self) -> bool {
         self.subscription.is_some()
     }
 
-    fn publish(&self, msg: &str, dest: &str) -> Result<(), PubSubError> {
+    pub fn publish(&mut self, msg: &str, dest: &str) -> Result<(), StompClientError> {
         if !self.connected() {
-            return Err(PubSubError::NotConnected);
+            return Err(StompClientError::NotConnected);
         }
         let pub_params = IPublishParams {
             destination: dest.to_string(),
@@ -130,14 +76,14 @@ impl PubSubClient for StompClient {
         Ok(())
     }
 
-    fn subscribe<C>(&mut self, callback: C, dest: &str) -> Result<(), PubSubError>
+    pub fn subscribe<C>(&mut self, callback: C, dest: &str) -> Result<(), StompClientError>
     where
-        C: Fn(String) + 'static,
+        C: Fn(&str) + 'static,
     {
         if !self.connected() {
-            return Err(PubSubError::NotConnected);
+            return Err(StompClientError::NotConnected);
         }
-        self.subscription_callback = Some(Closure::new(move |msg: IMessage| callback(msg.body())));
+        self.subscription_callback = Some(Closure::new(move |msg: IMessage| callback(&msg.body())));
         self.subscription = Some(self.client.subscribe(
             &JsValue::from_str(dest),
             self.subscription_callback.as_ref().unwrap(),
@@ -155,6 +101,34 @@ impl Drop for StompClient {
     }
 }
 
+/// URL for a secure STOMP-over-WebSocket connection.
+pub struct StompUrl(Url);
+
+#[derive(Error, Debug, Eq, PartialEq)]
+pub enum StompUrlError {
+    #[error("invalid URL: {0}")]
+    InvalidUrl(#[from] ParseError),
+
+    #[error("URL must use the WSS scheme")]
+    InvalidScheme,
+
+    #[error("URL cannot contain a fragment")]
+    HasFragment,
+}
+
+impl StompUrl {
+    pub fn new(url: &str) -> Result<Self, StompUrlError> {
+        let url = Url::parse(url)?;
+        if url.scheme() != "wss" {
+            Err(StompUrlError::InvalidScheme)
+        } else if url.fragment().is_some() {
+            Err(StompUrlError::HasFragment)
+        } else {
+            Ok(Self(url))
+        }
+    }
+}
+
 #[wasm_bindgen(module = "@stomp/stompjs")]
 extern "C" {
     type Client;
@@ -165,7 +139,7 @@ extern "C" {
     fn new(conf: &JsValue) -> Client;
 
     #[wasm_bindgen(method, setter, structural)]
-    fn set_onConnect(this: &Client, callback: &EventConsumer);
+    fn set_onConnect(this: &Client, callback: &crate::remote_api::EventConsumer);
 
     #[wasm_bindgen(method)]
     fn activate(this: &Client);
