@@ -5,20 +5,31 @@ use std::error::Error;
 use std::time::Duration;
 
 pub trait Player {
+    /// Empty the player's queue.
     fn clear(&self) -> Result<(), impl Error>;
 
+    /// Move to the given track in the queue.
     fn move_to(&self, offset: usize, id: &str) -> Result<(), impl Error>;
 
+    /// Pause the player.
     fn pause(&self) -> Result<(), impl Error>;
 
+    /// Play the previous track.
     fn prev(&self) -> Result<(), impl Error>;
 
+    /// Remove the given track from the queue.
+    fn remove(&self, offset: usize, id: &str) -> Result<(), impl Error>;
+
+    /// Resume the player.
     fn resume(&self) -> Result<(), impl Error>;
 
+    /// Set the loop parameter of the player.
     fn set_loop(&self, enabled: bool) -> Result<(), impl Error>;
 
+    /// Set the volume level of the player.
     fn set_volume(&self, value: u8) -> Result<(), impl Error>;
 
+    /// Play the next track.
     fn skip(&self) -> Result<(), impl Error>;
 }
 
@@ -46,7 +57,7 @@ pub enum MusicPlayerState {
     Disconnected,
 }
 
-pub trait TrackSnapshot {
+pub trait TrackSnapshot: Clone {
     /// Get the unique identifier of the track.
     fn id(&self) -> &str;
 
