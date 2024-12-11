@@ -115,6 +115,16 @@ impl Player for RemotePlayer {
         self.publish_json(cmd)
     }
 
+    fn remove(&self, offset: usize, id: &str) -> Result<(), impl Error> {
+        let cmd = RemoveCommand {
+            op: "remove".to_string(),
+            code: self.access_code,
+            offset: offset as i64,
+            id: id.to_string(),
+        };
+        self.publish_json(cmd)
+    }
+
     fn resume(&self) -> Result<(), impl Error> {
         let cmd = ResumeCommand {
             op: "resume".to_string(),
