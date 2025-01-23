@@ -175,13 +175,12 @@ pub fn Player() -> impl IntoView {
             }
         },
     );
-    let (dialog_read, dialog_write) = create_signal(false);
     let client2 = client.clone();
     view! {
         <div class="container">
             <header class="header">
                 <span>Next up</span>
-                <button class="btn-inline" on:click=move |_| { dialog_write.set(true) }>
+                <button class="btn-inline" popovertarget="copyright-dialog">
                     <InfoIcon frame=ICON_FRAME_SMALL/>
                     <span class="screenreader-only">Show copyright info</span>
                 </button>
@@ -280,11 +279,11 @@ pub fn Player() -> impl IntoView {
                             move |e| { client.set_volume(event_target_value(&e).parse().unwrap()).unwrap(); }}/>
                 </label>
             </footer>
-            <dialog class="copyright-dialog" open=dialog_read>
+            <dialog id="copyright-dialog" class="copyright-dialog" popover>
                 <pre>{ COPYRIGHT_INFO }</pre>
                 <p><a href="https://github.com/kmolski/acme-bot-remote" target="_blank">Show source code</a></p>
                 <p><a href="./license_info.html" target="_blank">Show OSS licenses</a></p>
-                <button on:click=move |_| { dialog_write.set(false) }>Close</button>
+                <button popovertarget="copyright-dialog">Close</button>
             </dialog>
         </div>
     }
