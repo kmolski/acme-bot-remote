@@ -1,10 +1,2 @@
-[watch]
-ignore = ["dist_js"]
-
 [tools]
 sass = "1.77.6"
-
-[[hooks]]
-stage = "pre_build"
-command = "node"
-command_arguments = ["esbuild.js"]
