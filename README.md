@@ -10,13 +10,11 @@ cargo install trunk wasm-bindgen-cli
 ### Running
 
 ```bash
-npm install --include=dev
 trunk serve
 ```
 
 ### Release
 
 ```bash
-npm install --include=dev
 trunk build --release
 ```
