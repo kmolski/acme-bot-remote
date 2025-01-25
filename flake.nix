@@ -20,7 +20,6 @@
             buildInputs = [
               rustToolchain
               dart-sass
-              nodejs
               trunk
             ];
           };

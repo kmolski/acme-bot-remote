@@ -33,9 +33,6 @@ jobs:
             target/
           key: cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install NPM dependencies
-        run: npm install --include=dev
-
       - name: Check formatting with rustfmt
         run: cargo fmt --check
 

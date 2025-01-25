@@ -15,8 +15,6 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.12",
  "typify",
- "url",
- "wasm-bindgen",
 ]
 
 [[package]]

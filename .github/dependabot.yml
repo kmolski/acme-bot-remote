@@ -8,11 +8,6 @@ updates:
       semver-patch:
         update-types: ["patch"]
 
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "monthly"
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
