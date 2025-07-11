@@ -96,7 +96,7 @@
       "type": "object"
     },
     "PlayerModel": {
-      "description": "Data model for a wavelink.Player instance.",
+      "description": "Data model for a lavalink.DefaultPlayer instance.",
       "properties": {
         "loop": {
           "title": "Loop",
@@ -143,7 +143,7 @@
       "type": "object"
     },
     "PlayerState": {
-      "description": "State set for wavelink.Player.",
+      "description": "State set for lavalink.DefaultPlayer.",
       "enum": [
         "idle",
         "playing",
@@ -175,7 +175,7 @@
       "type": "object"
     },
     "QueueEntry": {
-      "description": "Data model for a wavelink.Queue entry.",
+      "description": "Data model for a lavalink.Track entry.",
       "properties": {
         "id": {
           "title": "Id",
