@@ -16,7 +16,7 @@ jobs:
       run:
         shell: nix develop --command bash {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: nixbuild/nix-quick-install-action@v32
       - uses: nix-community/cache-nix-action@v6
