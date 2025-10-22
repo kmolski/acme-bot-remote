@@ -1,82 +1,52 @@
-// Copyright (C) 2024  Krzysztof Molski
+// Copyright (C) 2024-2025  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::error::Error;
-use std::sync::{Arc, Mutex, Weak};
+use std::rc::Rc;
 
-use leptos::logging;
+use codee::string::FromToStringCodec;
+use leptos::Signal;
+use leptos_use::{use_websocket_with_options, UseWebSocketOptions, UseWebSocketReturn};
 use serde::Serialize;
 use thiserror::Error;
 use typify::import_types;
 
-pub use stomp::StompUrl;
-
 use crate::player::{MusicPlayerState, Player, PlayerSnapshot, TrackSnapshot};
-
-mod stomp;
 
 import_types!("src/remote_api/schema.json");
 
 #[derive(Clone)]
 pub struct RemotePlayer {
-    client: Arc<Mutex<stomp::StompClient>>,
+    pub(crate) state: Signal<Option<String>>,
+    send: Rc<dyn Fn(&String)>,
     access_code: i64,
-    destination: String,
 }
 
 #[derive(Error, Debug)]
 enum RemotePlayerError {
     #[error("serialize error")]
     SerializeError(#[from] serde_json::Error),
-
-    #[error("publish error")]
-    PublishError(#[from] stomp::StompClientError),
 }
 
 impl RemotePlayer {
-    pub fn new<M>(
-        url: StompUrl,
-        login: &str,
-        password: &str,
-        remote_id: &str,
-        access_code: i64,
-        on_message: M,
-    ) -> Self
-    where
-        M: Fn(&str) + 'static,
-    {
-        let exchange = format!("/exchange/acme_bot_remote_update/{remote_id}.{access_code}");
-        let client = Arc::new_cyclic(move |weak: &Weak<Mutex<stomp::StompClient>>| {
-            let weak_ref = weak.clone();
-            let mut client =
-                stomp::StompClient::new(&url, login, password, on_message, move |_| {
-                    if let Some(arc) = weak_ref.upgrade() {
-                        let mut client = arc.lock().expect("lock poisoned");
-                        if client.connected() {
-                            if let Err(e) = client.subscribe(&exchange) {
-                                logging::warn!("stomp subscribe error: {e:?}");
-                            }
-                            if let Err(e) = client.publish("", &exchange) {
-                                logging::warn!("stomp publish error: {e:?}");
-                            }
-                        }
-                    }
-                });
-            client.connect();
-            Mutex::new(client)
-        });
-
+    pub fn new(url: &str, token: &str, access_code: i64) -> Self {
+        let options = UseWebSocketOptions::default().protocols(Some(vec![
+            "acme-bot".to_string(),
+            format!("acme-bot.bearer.{token}"),
+        ]));
+        let UseWebSocketReturn { message, send, .. } =
+            use_websocket_with_options::<String, String, FromToStringCodec>(url, options);
         Self {
-            client,
+            send: Rc::new(send),
+            state: message,
             access_code,
-            destination: format!("/exchange/acme_bot_remote/{remote_id}"),
         }
     }
 
     fn publish_json(&self, msg: impl Serialize) -> Result<(), RemotePlayerError> {
         let msg = serde_json::to_string(&msg)?;
-        let mut client = self.client.lock().expect("lock poisoned");
-        Ok(client.publish(&msg, &self.destination)?)
+        (*self.send)(&msg);
+        Ok(())
     }
 }
 
