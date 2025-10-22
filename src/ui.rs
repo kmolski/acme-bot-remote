@@ -1,22 +1,20 @@
-// Copyright (C) 2023-2024  Krzysztof Molski
+// Copyright (C) 2023-2025  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::time::Duration;
 
+use crate::player::{MusicPlayerState, Player, PlayerSnapshot, TrackSnapshot};
+use crate::remote_api::{PlayerModel, RemotePlayer};
 use base64::prelude::*;
 use leptos::*;
 use leptos_router::use_query_map;
-use url::Url;
-
-use crate::player::{MusicPlayerState, Player, PlayerSnapshot, TrackSnapshot};
-use crate::remote_api::{PlayerModel, RemotePlayer, StompUrl};
 
 const ICON_FRAME_SMALL: &str = "8 8 22 22";
 const ICON_FRAME_LARGE: &str = "0 0 38 38";
 
 const COPYRIGHT_INFO: &str = "\
 acme-bot-remote
-Copyright (C) 2023-2024  Krzysztof Molski
+Copyright (C) 2023-2025  Krzysztof Molski
 
 This program is free software: you can redistribute it and/or modify it under the terms
 of the GNU Affero General Public License as published by the Free Software Foundation,
@@ -146,35 +144,25 @@ fn TrackCard(track: MaybeSignal<impl TrackSnapshot + 'static>) -> impl IntoView 
 pub fn Player() -> impl IntoView {
     let query_params = use_query_map().get_untracked();
     let access_code = query_params.get("ac").unwrap().parse::<i64>().unwrap();
-    let remote_id = query_params.get("rid").unwrap().to_string();
+    let token = query_params.get("rt").unwrap().to_string();
     let rcs_bytes = BASE64_URL_SAFE_NO_PAD
-        .decode(query_params.get("rcs").unwrap())
+        .decode(query_params.get("ws").unwrap())
         .unwrap();
     let remote_server = String::from_utf8(rcs_bytes).unwrap();
+    let remote_url = format!("{remote_server}/{access_code}");
 
-    let mut url = Url::parse(&remote_server).unwrap();
-    let login = url.username().to_string();
-    let password = url.password().unwrap().to_string();
-    url.set_username("").unwrap();
-    url.set_password(None).unwrap();
-    url.set_fragment(None);
-
-    let (snapshot, set_snapshot) = create_signal::<PlayerModel>(Default::default());
-    let remote_url = StompUrl::new(url.as_str()).unwrap();
-    let client = RemotePlayer::new(
-        remote_url,
-        &login,
-        &password,
-        &remote_id,
-        access_code,
-        move |m| {
-            logging::log!("Message received: {}", m);
-            match serde_json::from_str(m) {
-                Ok(p) => set_snapshot.set(p),
-                Err(e) => logging::error!("Invalid snapshot: {}", e),
+    let client = RemotePlayer::new(&remote_url, &token, access_code);
+    let snapshot = Signal::derive(move || {
+        let state = client.state.get();
+        match serde_json::from_str(state.as_deref().unwrap_or("")) {
+            Ok(s) => s,
+            Err(e) => {
+                logging::error!("Invalid snapshot: {}", e);
+                PlayerModel::default()
             }
-        },
-    );
+        }
+    });
+
     let client2 = client.clone();
     view! {
         <div class="container">
