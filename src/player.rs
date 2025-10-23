@@ -1,4 +1,4 @@
-// Copyright (C) 2024  Krzysztof Molski
+// Copyright (C) 2024-2025  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::error::Error;
@@ -57,7 +57,7 @@ pub enum MusicPlayerState {
     Disconnected,
 }
 
-pub trait TrackSnapshot: Clone {
+pub trait TrackSnapshot: Clone + Send + Sync {
     /// Get the unique identifier of the track.
     fn id(&self) -> &str;
 

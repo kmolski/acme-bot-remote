@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use std::error::Error;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use codee::string::FromToStringCodec;
-use leptos::Signal;
+use leptos::prelude::Signal;
 use leptos_use::{use_websocket_with_options, UseWebSocketOptions, UseWebSocketReturn};
 use serde::Serialize;
 use thiserror::Error;
@@ -18,7 +18,7 @@ import_types!("src/remote_api/schema.json");
 #[derive(Clone)]
 pub struct RemotePlayer {
     pub(crate) state: Signal<Option<String>>,
-    send: Rc<dyn Fn(&String)>,
+    send: Arc<dyn Fn(&String) + Send + Sync + 'static>,
     access_code: i64,
 }
 
@@ -35,9 +35,9 @@ impl RemotePlayer {
             format!("acme-bot.bearer.{token}"),
         ]));
         let UseWebSocketReturn { message, send, .. } =
-            use_websocket_with_options::<String, String, FromToStringCodec>(url, options);
+            use_websocket_with_options::<String, String, FromToStringCodec, _, _>(url, options);
         Self {
-            send: Rc::new(send),
+            send: Arc::new(send),
             state: message,
             access_code,
         }
@@ -182,8 +182,8 @@ impl TrackSnapshot for QueueEntry {
 
     fn duration(&self) -> std::time::Duration {
         match self.duration {
-            Duration::Variant0(int) => std::time::Duration::from_secs(int as u64),
-            Duration::Variant1(float) => std::time::Duration::from_secs_f64(float),
+            Duration::Integer(int) => std::time::Duration::from_secs(int as u64),
+            Duration::Number(float) => std::time::Duration::from_secs_f64(float),
         }
     }
 

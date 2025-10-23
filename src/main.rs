@@ -1,8 +1,8 @@
-// Copyright (C) 2023-2024  Krzysztof Molski
+// Copyright (C) 2023-2025  Krzysztof Molski
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use leptos::*;
-use leptos_router::*;
+use leptos::prelude::*;
+use leptos_router::{components::*, path};
 
 use crate::ui::Player;
 
@@ -14,8 +14,8 @@ mod ui;
 fn App() -> impl IntoView {
     view! {
         <Router>
-            <Routes>
-                <Route path="/*" view=Player/>
+            <Routes fallback=|| "Page not found.">
+                <Route path=path!("/*") view=Player/>
             </Routes>
         </Router>
     }
