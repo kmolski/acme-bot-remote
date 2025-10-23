@@ -3,11 +3,13 @@
 
 use std::time::Duration;
 
+use base64::prelude::*;
+use leptos::logging;
+use leptos::prelude::*;
+use leptos_router::hooks::use_query_map;
+
 use crate::player::{MusicPlayerState, Player, PlayerSnapshot, TrackSnapshot};
 use crate::remote_api::{PlayerModel, RemotePlayer};
-use base64::prelude::*;
-use leptos::*;
-use leptos_router::use_query_map;
 
 const ICON_FRAME_SMALL: &str = "8 8 22 22";
 const ICON_FRAME_LARGE: &str = "0 0 38 38";
@@ -128,13 +130,13 @@ fn VolumeIcon(value: Signal<u8>) -> impl IntoView {
 }
 
 #[component]
-fn TrackCard(track: MaybeSignal<impl TrackSnapshot + 'static>) -> impl IntoView {
+fn TrackCard(track: Signal<impl TrackSnapshot + 'static>) -> impl IntoView {
     view! {
         <div class="track-card">
-            <img src={let t = track.clone(); move || t.get().thumbnail().map(|s| s.to_string())} class="track-thumbnail"/>
+           <img src=move || track.get().thumbnail().map(|s| s.to_string()) class="track-thumbnail"/>
             <div class="track-card-labels">
-                <a href={let t = track.clone(); move || t.get().webpage_url().to_string()} target="_blank" class="track-title">{let t = track.clone(); move || t.get().title().to_string()}</a>
-                <a href={let t = track.clone(); move || t.get().uploader_url().map(|s| s.to_string())} target="_blank">{let t = track.clone(); move || t.get().uploader().to_string()}</a>
+                <a href=move || track.get().webpage_url().to_string() target="_blank" class="track-title">{move || track.get().title().to_string()}</a>
+                <a href=move || track.get().uploader_url().map(|s| s.to_string()) target="_blank">{move || track.get().uploader().to_string()}</a>
             </div>
         </div>
     }
@@ -180,7 +182,7 @@ pub fn Player() -> impl IntoView {
                          let: entry>
                         <li>
                             <div class="track">
-                                <TrackCard track=MaybeSignal::Static(entry.clone())/>
+                                <TrackCard track=Signal::stored(entry.clone())/>
                                 <div class="track-controls">
                                     <span class="track-duration">{ format_duration(&entry.duration()) }</span>
                                     <button class="btn-inline" on:click={
@@ -210,7 +212,7 @@ pub fn Player() -> impl IntoView {
             <footer class="footer">
                 <div class="track">
                     <Show when=move || { snapshot.get().current.is_some() }>
-                        <TrackCard track=MaybeSignal::derive(move || { snapshot.get().current.unwrap() })/>
+                        <TrackCard track=Signal::derive(move || { snapshot.get().current.unwrap() })/>
                     </Show>
                 </div>
                 <div class="controls">
